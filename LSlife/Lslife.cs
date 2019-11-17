@@ -292,6 +292,7 @@ namespace LSlife
 
         //WEAPONS DEALER STUFF
         Dealer wepDealer;
+        UIText myUIText;
 
 
         // Main Loop
@@ -1302,6 +1303,8 @@ namespace LSlife
         {
             if (!Game.IsLoading)
             {
+                myUIText = new UIText("" + Game.GameTime + " | ", new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
+                myUIText.Draw();
                 playerGroup = playerPed.CurrentPedGroup;
                 if (LsMenuPool != null)
                 {
