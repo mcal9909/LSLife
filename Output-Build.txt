@@ -1,0 +1,7 @@
+﻿1>------ Build started: Project: LSlife, Configuration: Release x64 ------
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\Lslife.cs(682,16,682,20): warning CS0169: The field 'LSL.cash' is never used
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\Lslife.cs(104,21,104,33): warning CS0169: The field 'LSL.dealerIntro1' is never used
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\Lslife.cs(98,16,98,23): warning CS0169: The field 'LSL.DebugUI' is never used
+1>  LSlife -> C:\Users\Mcal\source\repos\LSLife\LSlife\bin\x64\Release\LSlife.dll
+1>          1 file(s) copied.
+========== Build: 1 succeeded, 0 failed, 0 up-to-date, 0 skipped ==========
