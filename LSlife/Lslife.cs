@@ -58,7 +58,7 @@ namespace LSlife
         //Vehicle stash MENU
         UIMenu vehStashMainMenu;
         UIMenu vehStashTakeMenu;
-        UIMenu vehStashStashMenu;
+        UIMenu vehStashPutMenu;
         UIMenuSliderItem putWeedVeh;
         UIMenuSliderItem takeWeedVeh;
         UIMenuSliderItem putCrackVeh;
@@ -303,17 +303,18 @@ namespace LSlife
             Tick += onTick;
             KeyDown += onKeyDown;
 
-            Interval = 10;
+            //Interval = 10;
 
 
             //blips
             if (EnableBlips)
             {
                 stashBlip = World.CreateBlip(new Vector3(-112.616f, -1479.229f, 30f));
-                stashBlip.Name = "Stash";
+                
                 Function.Call(Hash.SET_BLIP_SPRITE, stashBlip, 40);
                 Function.Call(Hash.SET_BLIP_COLOUR, stashBlip, 25);
                 stashBlip.IsShortRange = true;
+                stashBlip.Name = "Stash house";
             }
         }
 
@@ -368,7 +369,7 @@ namespace LSlife
             stashCocain = iniSettings.GetValue<int>("PLAYER STASH", "Cocain", 0);
             stashMoney = iniSettings.GetValue<int>("PLAYER STASH", "Money", 0);
 
-            EnableBlips = false;
+            EnableBlips = true;
 
             xdoc = XDocument.Load("scripts\\LsLife_Weapons.xml");
             foreach (XElement element in xdoc.Descendants())
@@ -472,7 +473,7 @@ namespace LSlife
             bushWeed.Multiplier = 1;
             WeedBuy = new UIMenuItem("Buy: " + bushWeed.Value);
             weedMenu.AddItem(WeedBuy);
-            bushWeed.OnSliderChanged += BushWeed_OnSliderChanged;
+            bushWeed.OnSliderChanged += onSliderChange;
             weedMenu.OnItemSelect += onWeedMenuSelect;
             //CRACK 
             crackMenu = LsMenuPool.AddSubMenu(dealerMainMenu, "Crack");
@@ -482,7 +483,7 @@ namespace LSlife
             crack.Multiplier = 1;
             CrackBuy = new UIMenuItem("Buy: " + crack.Value);
             crackMenu.AddItem(CrackBuy);
-            crack.OnSliderChanged += Crack_OnSliderChanged;
+            crack.OnSliderChanged += onSliderChange;
             crackMenu.OnItemSelect += onCrackMenuSelect;
             //COCAIN
             cocainMenu = LsMenuPool.AddSubMenu(dealerMainMenu, "Cocain");
@@ -492,7 +493,7 @@ namespace LSlife
             cocain.Multiplier = 1;
             CocainBuy = new UIMenuItem("Buy: " + cocain.Value);
             cocainMenu.AddItem(CocainBuy);
-            cocain.OnSliderChanged += Cocain_OnSliderChanged;
+            cocain.OnSliderChanged += onSliderChange;
             cocainMenu.OnItemSelect += onCocainMenuSelect;
             //dismis
             dismissDealer = new UIMenuItem("Nothing man, see ya");
@@ -515,8 +516,8 @@ namespace LSlife
             stashTakeMenu.AddItem(takeWeedStash);
             takeWeedStash.Maximum = stashWeed;
             takeWeedStash.Multiplier = 1;
-            putWeedStash.OnSliderChanged += onPutWeedStashSlider;
-            takeWeedStash.OnSliderChanged += onTakeWeedStashSlider;
+            putWeedStash.OnSliderChanged += onSliderChange;
+            takeWeedStash.OnSliderChanged += onSliderChange;
             //stash crack
             putCrackStash = new UIMenuSliderItem("Crack");
             stashPutMenu.AddItem(putCrackStash);
@@ -526,8 +527,8 @@ namespace LSlife
             stashTakeMenu.AddItem(takeCrackStash);
             takeCrackStash.Maximum = stashCrack;
             takeCrackStash.Multiplier = 1;
-            putCrackStash.OnSliderChanged += onPutCrackStashSlider;
-            takeCrackStash.OnSliderChanged += onTakeCrackStashSlider;
+            putCrackStash.OnSliderChanged += onSliderChange;
+            takeCrackStash.OnSliderChanged += onSliderChange;
             //stash COCAIN
             putCocainStash = new UIMenuSliderItem("Cocain");
             stashPutMenu.AddItem(putCocainStash);
@@ -537,8 +538,8 @@ namespace LSlife
             stashTakeMenu.AddItem(takeCocainStash);
             takeCocainStash.Maximum = stashCocain;
             takeCocainStash.Multiplier = 1;
-            putCocainStash.OnSliderChanged += onPutCocainStashSlider;
-            takeCocainStash.OnSliderChanged += onTakeCocainStashSlider;
+            putCocainStash.OnSliderChanged += onSliderChange;
+            takeCocainStash.OnSliderChanged += onSliderChange;
             //stash MONEY
             putMoneyStash = new UIMenuSliderItem("Money $");
             stashPutMenu.AddItem(putMoneyStash);
@@ -548,20 +549,20 @@ namespace LSlife
             stashTakeMenu.AddItem(takeMoneyStash);
             takeMoneyStash.Maximum = stashMoney;
             takeMoneyStash.Multiplier = 100;
-            putMoneyStash.OnSliderChanged += onPutMoneyStashSlider;
-            takeMoneyStash.OnSliderChanged += onTakeMoneyStashSlider;
+            putMoneyStash.OnSliderChanged += onSliderChange;
+            takeMoneyStash.OnSliderChanged += onSliderChange;
             //STASH WEAPONS
             if (playerWeapons.Count > 0)
             {
                 putWeaponStash = new UIMenuListItem("Stash Weapon: ", playerWeps, 0);
                 stashPutMenu.AddItem(putWeaponStash);
-                //putWeaponStash.OnListChanged += onPutWeponStashSlider;
+                putWeaponStash.OnListChanged += onListChange;
             }
             if (stashWeps.Count > 0)
             {
                 takeWeaponStash = new UIMenuListItem("Take Weapon :", stashWeps, 0);
                 stashTakeMenu.AddItem(takeWeaponStash);
-                //takeWeaponStash.OnListChanged += onTakeWeaponStashSlider;
+                takeWeaponStash.OnListChanged += onListChange;
             }
             stashPutMenu.OnItemSelect += onStashMenuSelect;
             stashTakeMenu.OnItemSelect += onPlayerMenuSelect;
@@ -570,45 +571,57 @@ namespace LSlife
             vehStashMainMenu = new UIMenu("Vehicle Stash", "Select");
             LsMenuPool.Add(vehStashMainMenu);
             vehStashTakeMenu = LsMenuPool.AddSubMenu(vehStashMainMenu, "Take");
-            vehStashStashMenu = LsMenuPool.AddSubMenu(vehStashMainMenu, "Stash");
+            vehStashPutMenu = LsMenuPool.AddSubMenu(vehStashMainMenu, "Stash");
             //stash weed
-            putWeedVeh = new UIMenuSliderItem("Weed");
-            vehStashStashMenu.AddItem(putWeedVeh);
+            putWeedVeh = new UIMenuSliderItem("Weed " +PlayerInventory["Weed"]+ "g");
+            vehStashPutMenu.AddItem(putWeedVeh);
             putWeedVeh.Maximum = PlayerInventory["Weed"];
             putWeedVeh.Multiplier = 1;
-            takeWeedVeh = new UIMenuSliderItem("Weed");
+            takeWeedVeh = new UIMenuSliderItem("Weed " + drugCarWeed + "g");
             vehStashTakeMenu.AddItem(takeWeedVeh);
             takeWeedVeh.Maximum = drugCarWeed;
             takeWeedVeh.Multiplier = 1;
+            putWeedVeh.OnSliderChanged += onSliderChange;
+            takeWeedVeh.OnSliderChanged += onSliderChange;
             //stash crack
-            putCrackVeh = new UIMenuSliderItem("Crack");
-            vehStashStashMenu.AddItem(putCrackVeh);
+            putCrackVeh = new UIMenuSliderItem("Crack " + PlayerInventory["Crack"] + "g");
+            vehStashPutMenu.AddItem(putCrackVeh);
             putCrackVeh.Maximum = PlayerInventory["Crack"];
             putCrackVeh.Multiplier = 1;
-            takeCrackVeh = new UIMenuSliderItem("Crack");
+            takeCrackVeh = new UIMenuSliderItem("Crack " + drugCarCrack + "g");
             vehStashTakeMenu.AddItem(takeCrackVeh);
             takeCrackVeh.Maximum = drugCarCrack;
             takeCrackVeh.Multiplier = 1;
+            putWeedVeh.OnSliderChanged += onSliderChange;
+            takeWeedVeh.OnSliderChanged += onSliderChange;
             //stash COCAIN
-            putCocainVeh = new UIMenuSliderItem("Cocain");
-            vehStashStashMenu.AddItem(putCocainVeh);
+            putCocainVeh = new UIMenuSliderItem("Cocain " + PlayerInventory["Cocain"] + "g");
+            vehStashPutMenu.AddItem(putCocainVeh);
             putCocainVeh.Maximum = PlayerInventory["Cocain"];
             putCocainVeh.Multiplier = 1;
-            takeCocainVeh = new UIMenuSliderItem("Cocain");
+            takeCocainVeh = new UIMenuSliderItem("Cocain " + drugCarCocain + "g");
             vehStashTakeMenu.AddItem(takeCocainVeh);
             takeCocainVeh.Maximum = drugCarCocain;
             takeCocainVeh.Multiplier = 1;
+            putWeedVeh.OnSliderChanged += onSliderChange;
+            takeWeedVeh.OnSliderChanged += onSliderChange;
             //stash MONEY
-            putMoneyVeh = new UIMenuSliderItem("Money");
-            vehStashStashMenu.AddItem(putMoneyVeh);
+            putMoneyVeh = new UIMenuSliderItem("Money $" + player.Money);
+            vehStashPutMenu.AddItem(putMoneyVeh);
             putMoneyVeh.Maximum = player.Money;
-            putMoneyVeh.Multiplier = 10;
-            takeMoneyVeh = new UIMenuSliderItem("Money");
+            putMoneyVeh.Multiplier = 100;
+            takeMoneyVeh = new UIMenuSliderItem("Money $" + drugCarMoney);
             vehStashTakeMenu.AddItem(takeMoneyVeh);
             takeMoneyVeh.Maximum = drugCarMoney;
-            takeMoneyVeh.Multiplier = 10;
-            vehStashStashMenu.OnItemSelect += onPutVehicleMenuSelect;
+            takeMoneyVeh.Multiplier = 100;
+            putMoneyVeh.OnSliderChanged += onSliderChange;
+            takeMoneyVeh.OnSliderChanged += onSliderChange;
+
+
+            vehStashPutMenu.OnItemSelect += onPutVehicleMenuSelect;
             vehStashTakeMenu.OnItemSelect += onTakeVehicleMenuSelect;
+
+
             //Customer Menu
             customerMainMenu = new UIMenu("Customer", "Select an option");
             LsMenuPool.Add(customerMainMenu);
@@ -643,34 +656,18 @@ namespace LSlife
             contactC.Icon = ContactIcon.MP_ProfBoss;
             iFruit.Contacts.Add(contactC);
 
-
-
-
             //groups
-
-            //TASK SEQUENCES
-            
-
-
+            //TASK SEQUENCES       
             //timestuff
             date = World.CurrentDate;
             day = date.DayOfWeek;
             hour = date.Hour;
             jobOfferTimer = Game.GameTime;
-
-
-
             //Loaded
-
             UI.Notify("LS Life Alpha Loaded, Give Zee a call.");
         }
 
-
-        void BushWeed_OnSliderChanged(UIMenuSliderItem sender, int index)
-        {
-            int total = bushWeed.Value * weed1Price;
-            WeedBuy.Text = "Buy ~g~" + bushWeed.Value + " ~w~for $~g~" + total;
-        }
+        //WEED MENU
         void onWeedMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
             if (item == WeedBuy && dealer1Weed > 0)
@@ -712,11 +709,6 @@ namespace LSlife
         }
 
         //CRACK MENUS
-        void Crack_OnSliderChanged(UIMenuSliderItem sender, int index)
-        {
-            int total = crack.Value * crack1Price;
-            CrackBuy.Text = "Buy ~g~" + crack.Value + " ~w~for $~g~" + total;
-        }
         void onCrackMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
             if (item == CrackBuy && dealer1Crack > 0)
@@ -759,11 +751,6 @@ namespace LSlife
         }
 
         //COCAIN MENU
-        void Cocain_OnSliderChanged(UIMenuSliderItem sender, int index)
-        {
-            int total = cocain.Value * cocain1Price;
-            CocainBuy.Text = "Buy ~g~" + cocain.Value + " ~w~for $~g~" + total;
-        }
         void onCocainMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
             if (item == CocainBuy && dealer1Cocain > 0)
@@ -854,7 +841,7 @@ namespace LSlife
             {
                 drugCarWeed += putWeedVeh.Value;
                 PlayerInventory["Weed"] -= putWeedVeh.Value;
-                UI.Notify("Stashed " + putWeedVeh.Value + "g, youre carrying " + PlayerInventory["Weed"] + "g.");
+                //UI.Notify("Stashed " + putWeedVeh.Value + "g, youre carrying " + PlayerInventory["Weed"] + "g.");
                 putWeedVeh.Maximum -= putWeedVeh.Value;
                 takeWeedVeh.Maximum = drugCarWeed;
                 iniSettings.SetValue("PLAYER INVENTORY", "Weed", PlayerInventory["Weed"]);
@@ -862,6 +849,7 @@ namespace LSlife
                 iniSettings.SetValue("DRUG CAR", "Weed", drugCarWeed);
                 iniSettings.Save();
                 TotalDrugsCarried = 0;
+                putWeedVeh.Text = "Weed " + PlayerInventory["Weed"] + "g";
                 foreach (KeyValuePair<string, int> entry in PlayerInventory)
                 {
                     TotalDrugsCarried += PlayerInventory[entry.Key];
@@ -871,7 +859,7 @@ namespace LSlife
             {
                 drugCarCrack += putCrackVeh.Value;
                 PlayerInventory["Crack"] -= putCrackVeh.Value;
-                UI.Notify("Stashed " + putCrackVeh.Value + "g, youre carrying " + PlayerInventory["Crack"] + "g.");
+                //UI.Notify("Stashed " + putCrackVeh.Value + "g, youre carrying " + PlayerInventory["Crack"] + "g.");
                 putCrackVeh.Maximum -= putCrackVeh.Value;
                 takeCrackVeh.Maximum = drugCarCrack;
                 iniSettings.SetValue("PLAYER INVENTORY", "Crack", PlayerInventory["Crack"]);
@@ -879,6 +867,7 @@ namespace LSlife
                 iniSettings.SetValue("DRUG CAR", "Crack", drugCarCrack);
                 iniSettings.Save();
                 TotalDrugsCarried = 0;
+                putCrackVeh.Text = "Crack " + PlayerInventory["Crack"] + "g";
                 foreach (KeyValuePair<string, int> entry in PlayerInventory)
                 {
                     TotalDrugsCarried += PlayerInventory[entry.Key];
@@ -888,7 +877,7 @@ namespace LSlife
             {
                 drugCarCocain += putCocainVeh.Value;
                 PlayerInventory["Cocain"] -= putCocainVeh.Value;
-                UI.Notify("Stashed " + putCocainVeh.Value + "g, youre carrying " + PlayerInventory["Cocain"] + "g.");
+                //UI.Notify("Stashed " + putCocainVeh.Value + "g, youre carrying " + PlayerInventory["Cocain"] + "g.");
                 putCocainVeh.Maximum -= putCocainVeh.Value;
                 takeCocainVeh.Maximum = drugCarCocain;
                 iniSettings.SetValue("PLAYER INVENTORY", "Cocain", PlayerInventory["Cocain"]);
@@ -896,6 +885,7 @@ namespace LSlife
                 iniSettings.SetValue("DRUG CAR", "Cocain", drugCarCocain);
                 iniSettings.Save();
                 TotalDrugsCarried = 0;
+                putCocainVeh.Text = "Cocain " + PlayerInventory["Crack"] + "g";
                 foreach (KeyValuePair<string, int> entry in PlayerInventory)
                 {
                     TotalDrugsCarried += PlayerInventory[entry.Key];
@@ -905,11 +895,12 @@ namespace LSlife
             {
                 drugCarMoney += putMoneyVeh.Value;
                 player.Money -= putMoneyVeh.Value;
-                UI.Notify("Stashed $" + putMoneyVeh.Value + ", youre carrying $" + player.Money + ".");
+                //UI.Notify("Stashed $" + putMoneyVeh.Value + ", youre carrying $" + player.Money + ".");
                 putMoneyVeh.Maximum -= putMoneyVeh.Value;
                 takeMoneyVeh.Maximum = drugCarMoney;
                 iniSettings.SetValue("DRUG CAR", "Money", drugCarMoney);
                 iniSettings.Save();
+                putMoneyVeh.Text = "Money $" + player.Money;
             }
 
         }
@@ -927,6 +918,7 @@ namespace LSlife
                 iniSettings.SetValue("DRUG CAR", "Weed", drugCarWeed);
                 iniSettings.Save();
                 TotalDrugsCarried = 0;
+                takeWeedVeh.Text = "Weed " + drugCarWeed + "g";
                 foreach (KeyValuePair<string, int> entry in PlayerInventory)
                 {
                     TotalDrugsCarried += PlayerInventory[entry.Key];
@@ -936,7 +928,7 @@ namespace LSlife
             {
                 PlayerInventory["Crack"] += takeCrackVeh.Value;
                 drugCarCrack -= takeCrackVeh.Value;
-                UI.Notify("Took " + takeCrackVeh.Value + "g, youre carrying " + PlayerInventory["Crack"] + "g.");
+                //UI.Notify("Took " + takeCrackVeh.Value + "g, youre carrying " + PlayerInventory["Crack"] + "g.");
                 takeCrackVeh.Maximum -= takeCrackVeh.Value;
                 putCrackVeh.Maximum = PlayerInventory["Crack"];
                 iniSettings.SetValue("PLAYER INVENTORY", "Crack", PlayerInventory["Crack"]);
@@ -944,6 +936,7 @@ namespace LSlife
                 iniSettings.SetValue("DRUG CAR", "Crack", drugCarCrack);
                 iniSettings.Save();
                 TotalDrugsCarried = 0;
+                takeCrackVeh.Text = "Crack " + drugCarCrack + "g";
                 foreach (KeyValuePair<string, int> entry in PlayerInventory)
                 {
                     TotalDrugsCarried += PlayerInventory[entry.Key];
@@ -953,7 +946,7 @@ namespace LSlife
             {
                 PlayerInventory["Cocain"] += takeCocainVeh.Value;
                 drugCarCocain -= takeCocainVeh.Value;
-                UI.Notify("Took " + takeCocainVeh.Value + "g, youre carrying " + PlayerInventory["Cocain"] + "g.");
+                //UI.Notify("Took " + takeCocainVeh.Value + "g, youre carrying " + PlayerInventory["Cocain"] + "g.");
                 takeCocainVeh.Maximum -= takeCocainVeh.Value;
                 putCocainStash.Maximum = PlayerInventory["Cocain"];
                 iniSettings.SetValue("PLAYER INVENTORY", "Cocain", PlayerInventory["Cocain"]);
@@ -961,6 +954,7 @@ namespace LSlife
                 iniSettings.SetValue("DRUG CAR", "Cocain", drugCarCocain);
                 iniSettings.Save();
                 TotalDrugsCarried = 0;
+                takeCocainVeh.Text = "Cocain " + drugCarCocain + "g";
                 foreach (KeyValuePair<string, int> entry in PlayerInventory)
                 {
                     TotalDrugsCarried += PlayerInventory[entry.Key];
@@ -970,61 +964,124 @@ namespace LSlife
             {
                 player.Money += takeMoneyVeh.Value;
                 drugCarMoney -= takeMoneyVeh.Value;
-                UI.Notify("Took $" + takeMoneyVeh.Value + "g, youre carrying $" + player.Money);
+                //UI.Notify("Took $" + takeMoneyVeh.Value + "g, youre carrying $" + player.Money);
                 takeMoneyVeh.Maximum -= takeMoneyVeh.Value;
                 putMoneyVeh.Maximum = player.Money;
                 iniSettings.SetValue("DRUG CAR", "Money", drugCarMoney);
                 iniSettings.Save();
+                takeMoneyVeh.Text = "Money $" + drugCarMoney;
             }
             UpdateInventory();
         }
 
 
+
+        void onSliderChange(UIMenuSliderItem sender, int index)
+        {
+            //VEHICLE SLIDERS
+            if(sender == takeWeedVeh)
+            {
+                vehStashTakeMenu.Subtitle.Caption = "Take " + takeWeedVeh.Value + "g";
+            }
+            if(sender == putWeedVeh)
+            {
+                vehStashPutMenu.Subtitle.Caption = "Put " + putWeedVeh.Value + "g";
+            }
+
+            if (sender == takeCrackVeh)
+            {
+                vehStashTakeMenu.Subtitle.Caption = "Take " + takeCrackVeh.Value + "g";
+            }
+            if (sender == putCrackVeh)
+            {
+                vehStashPutMenu.Subtitle.Caption = "Put " + putCrackVeh.Value + "g";
+            }
+
+            if (sender == takeCocainVeh)
+            {
+                vehStashTakeMenu.Subtitle.Caption = "Take " + takeCocainVeh.Value + "g";
+            }
+            if (sender == putCocainVeh)
+            {
+                vehStashPutMenu.Subtitle.Caption = "Put " + putCocainVeh.Value + "g";
+            }
+
+            if (sender == putMoneyVeh)
+            {
+                vehStashPutMenu.Subtitle.Caption = "Take $" + putMoneyVeh.Value;
+            }
+            if (sender == takeMoneyVeh)
+            {
+                vehStashTakeMenu.Subtitle.Caption = "Put $" + takeMoneyVeh.Value;
+            }
+
+            //STASH SLIDERS
+            if (sender == takeWeedStash)
+            {
+                stashTakeMenu.Subtitle.Caption = "Take " + takeWeedStash.Value + "g";
+            }
+            if (sender == putWeedStash)
+            {
+                stashPutMenu.Subtitle.Caption = "Put " + putWeedStash.Value + "g";
+            }
+            if (sender == takeCrackStash)
+            {
+                stashTakeMenu.Subtitle.Caption = "Take " + takeCrackStash.Value + "g";
+            }
+            if (sender == putCrackStash)
+            {
+                stashPutMenu.Subtitle.Caption = "Put " + putCrackStash.Value + "g";
+            }
+            if (sender == takeCocainStash)
+            {
+                stashTakeMenu.Subtitle.Caption = "Take " + takeCocainStash.Value + "g";
+            }
+            if (sender == putCocainStash)
+            {
+                stashPutMenu.Subtitle.Caption = "Put " + putCocainStash.Value + "g";
+            }
+            if (sender == takeMoneyStash)
+            {
+                stashTakeMenu.Subtitle.Caption = "Take $" + takeMoneyStash.Value;
+            }
+            if (sender == putMoneyStash)
+            {
+                stashPutMenu.Subtitle.Caption = "Put $" + putMoneyStash.Value;
+            }
+
+            //DEALER SLIDERS
+            if (sender == bushWeed)
+            {
+                int total = bushWeed.Value * weed1Price;
+                WeedBuy.Text = "Buy ~g~" + bushWeed.Value + " ~w~for $~g~" + total;
+            }
+            if (sender == crack)
+            {
+                int total = crack.Value * crack1Price;
+                CrackBuy.Text = "Buy ~g~" + crack.Value + " ~w~for $~g~" + total;
+            }
+            if (sender == cocain)
+            {
+                int total = cocain.Value * cocain1Price;
+                CocainBuy.Text = "Buy ~g~" + cocain.Value + " ~w~for $~g~" + total;
+            }
+        }
+
         //PLAYER TO STASH MENUS
-        void onTakeWeedStashSlider(UIMenuSliderItem sender, int index)
+        void onListChange(UIMenuListItem sender, int index)
         {
-            stashTakeMenu.Subtitle.Caption = "Take " + takeWeedStash.Value + "g";
-        }
-        void onPutWeedStashSlider(UIMenuSliderItem sender, int index)
-        {
-            stashPutMenu.Subtitle.Caption = "Put " + putWeedStash.Value + "g";
-        }
-
-        void onTakeCrackStashSlider(UIMenuSliderItem sender, int index)
-        {
-            stashTakeMenu.Subtitle.Caption = "Take " + takeCrackStash.Value + "g";
-        }
-        void onPutCrackStashSlider(UIMenuSliderItem sender, int index)
-        {
-            stashPutMenu.Subtitle.Caption = "Put " + putCrackStash.Value + "g";
+            if (sender == takeWeaponStash)
+            {
+                stashTakeMenu.Subtitle.Caption = "Take " + stashWeps[takeWeaponStash.Index];
+            }
+            if (sender == putWeaponStash)
+            {
+                stashPutMenu.Subtitle.Caption = "Put " + playerWeps[putWeaponStash.Index];
+            }
+        
         }
 
-        void onTakeCocainStashSlider(UIMenuSliderItem sender, int index)
-        {
-            stashTakeMenu.Subtitle.Caption = "Take " + takeCocainStash.Value + "g";
-        }
-        void onPutCocainStashSlider(UIMenuSliderItem sender, int index)
-        {
-            stashPutMenu.Subtitle.Caption = "Put " + putCocainStash.Value + "g";
-        }
 
-        void onTakeMoneyStashSlider(UIMenuSliderItem sender, int index)
-        {
-            stashTakeMenu.Subtitle.Caption = "Take $" + takeMoneyStash.Value;
-        }
-        void onPutMoneyStashSlider(UIMenuSliderItem sender, int index)
-        {
-            stashPutMenu.Subtitle.Caption = "Put $" + putMoneyStash.Value;
-        }
-
-        void onTakeWeaponStashSlider(UIMenuListItem sender, int index)
-        {
-            stashTakeMenu.Subtitle.Caption = "Take " + stashWeps[takeWeaponStash.Index];
-        }
-        void onPutWeponStashSlider(UIMenuListItem sender, int index)
-        {
-            stashPutMenu.Subtitle.Caption = "Put " + playerWeps[putWeaponStash.Index];
-        }
 
         void onStashMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
@@ -1303,8 +1360,8 @@ namespace LSlife
         {
             if (!Game.IsLoading)
             {
-                myUIText = new UIText("" + Game.GameTime + " | ", new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
-                myUIText.Draw();
+                //myUIText = new UIText("" + Game.GameTime + " | ", new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
+                //myUIText.Draw();
                 playerGroup = playerPed.CurrentPedGroup;
                 if (LsMenuPool != null)
                 {
@@ -1315,7 +1372,7 @@ namespace LSlife
                 {
                     timerBarPool.Draw();
                 }
-                //DateTimeUpdate();
+                DateTimeUpdate();
                 if (playerPed != null && !playerPed.IsAlive && !playerDead)
                 {
                     playerDead = true;
@@ -1327,17 +1384,20 @@ namespace LSlife
                         {
                             if (p != null)
                             {
-                                if (attacker == null)
+                                if (Function.Call<int>(Hash.GET_PED_TYPE, p.Handle) != 6)
                                 {
-                                    UI.Notify("Yo, found the dude that got you.");
-                                    attacker = p;
-                                    attacker.IsPersistent = true;
-                                    attacker.Task.WanderAround();
-                                    attacker.Money = player.Money;
-                                    angryPeds.Remove(attacker);
-                                    attacker.AddBlip();
-                                    attacker.CurrentBlip.IsFriendly = false;
-                                }
+                                    if (attacker == null)
+                                    {
+                                        //UI.Notify("Yo, found the dude that got you.");
+                                        attacker = p;
+                                        attacker.IsPersistent = true;
+                                        attacker.Task.WanderAround();
+                                        attacker.Money = player.Money;
+                                        angryPeds.Remove(attacker);
+                                        attacker.AddBlip();
+                                        attacker.CurrentBlip.IsFriendly = false;
+                                    }
+                                }                                
                             }
                         }
                     }
@@ -1367,6 +1427,14 @@ namespace LSlife
                             drugCar.Delete();
                             drugCar = null;
                             iniSettings.SetValue("DRUG CAR", "HASH", "");
+                            iniSettings.Save();
+                            iniSettings.SetValue("DRUG CAR", "WEED", 0);
+                            iniSettings.Save();
+                            iniSettings.SetValue("DRUG CAR", "CRACK", 0);
+                            iniSettings.Save();
+                            iniSettings.SetValue("DRUG CAR", "COCAIN", 0);
+                            iniSettings.Save();
+                            iniSettings.SetValue("DRUG CAR", "MONEY", 0);
                             iniSettings.Save();
                         }
                         playerPed.Weapons.RemoveAll();
@@ -1455,9 +1523,18 @@ namespace LSlife
                                 drugCarModel = "";
                                 iniSettings.SetValue("DRUG CAR", "HASH", "");
                                 iniSettings.Save();
+                                iniSettings.SetValue("DRUG CAR", "WEED", 0);
+                                iniSettings.Save();
+                                iniSettings.SetValue("DRUG CAR", "CRACK", 0);
+                                iniSettings.Save();
+                                iniSettings.SetValue("DRUG CAR", "COCAIN", 0);
+                                iniSettings.Save();
+                                iniSettings.SetValue("DRUG CAR", "MONEY", 0);
+                                iniSettings.Save();
                             }
                             if (drugCar != null)
                             {
+                                Vector3 backPos = Vector3.Add(drugCar.Position, Vector3.Multiply(drugCar.ForwardVector * -1, (drugCar.Model.GetDimensions().Y / 2) + 0.5f));
                                 if (drugCar.Exists())
                                 {
                                     if (drugCarPos != drugCar.Position && !playerPed.IsInVehicle())
@@ -1478,7 +1555,6 @@ namespace LSlife
                                         if (drugCar.Driver == playerPed)
                                         {
                                             drugCar.CurrentBlip.Remove();
-
                                         }
                                     }
                                     else
@@ -1492,13 +1568,17 @@ namespace LSlife
                                         }
                                     }
                                 }
+                                if (drugCar.Driver != playerPed && playerPed.Position.DistanceTo(drugCar.Position) < 10)
+                                {
+                                    World.DrawMarker(MarkerType.UpsideDownCone, backPos, Vector3.Zero, Vector3.Zero, new Vector3(1f, 1f, 0.5f), Color.Green);
+                                }
                                 if (drugCar.CurrentBlip.IsShortRange == false)
                                 {
                                     drugCar.CurrentBlip.IsShortRange = true;
                                     drugCar.CurrentBlip.Sprite = BlipSprite.PersonalVehicleCar;
                                     drugCar.CurrentBlip.Name = "Drug Car";
                                 }
-                                Vector3 backPos = Vector3.Add(drugCar.Position, Vector3.Multiply(drugCar.ForwardVector * -1, (drugCar.Model.GetDimensions().Y / 2) + 0.5f));
+                                
                                 if (!playerPed.IsInVehicle() && playerPed.Position.DistanceTo(backPos) <= 1f && drugCar.Model.IsCar)
                                 {
                                     bool trunkFound = false;
@@ -1507,12 +1587,12 @@ namespace LSlife
                                     {
                                         if (!drugCar.IsDoorOpen(VehicleDoor.Trunk))
                                         {
-                                            if (Game.GameTime > displayHelpTimer + 3000 && !LsMenuPool.IsAnyMenuOpen())
+                                            if (Game.GameTime > displayHelpTimer + 3000 && !LsMenuPool.IsAnyMenuOpen() && playerPed.IsStopped)
                                             {
                                                 displayHelpTimer = Game.GameTime;
                                                 DisplayHelpText("~INPUT_SPRINT~ to open trunk.");
                                             }
-                                            if (Game.IsControlJustPressed(2, GTA.Control.Sprint) && !LsMenuPool.IsAnyMenuOpen())
+                                            if (Game.IsControlJustPressed(2, GTA.Control.Sprint) && !LsMenuPool.IsAnyMenuOpen() && playerPed.IsStopped)
                                             {
                                                 drugCar.OpenDoor(VehicleDoor.Trunk, false, false);
                                                 if (PlayerInventory.Count > 0)
@@ -1527,12 +1607,12 @@ namespace LSlife
                                         }
                                         else
                                         {
-                                            if (Game.GameTime > displayHelpTimer + 3000 && !LsMenuPool.IsAnyMenuOpen())
+                                            if (Game.GameTime > displayHelpTimer + 3000 && !LsMenuPool.IsAnyMenuOpen() && playerPed.IsStopped)
                                             {
                                                 displayHelpTimer = Game.GameTime;
                                                 DisplayHelpText("~INPUT_SPRINT~ to close trunk.");
                                             }
-                                            if (Game.IsControlJustPressed(2, GTA.Control.Sprint) && !LsMenuPool.IsAnyMenuOpen())
+                                            if (Game.IsControlJustPressed(2, GTA.Control.Sprint) && !LsMenuPool.IsAnyMenuOpen() && playerPed.IsStopped)
                                             {
                                                 drugCar.CloseDoor(VehicleDoor.Trunk, false);
                                             }
@@ -1540,14 +1620,14 @@ namespace LSlife
                                     }
                                     else
                                     {
-                                        if (!drugCar.IsDoorOpen(VehicleDoor.BackLeftDoor) && !LsMenuPool.IsAnyMenuOpen())
+                                        if (!drugCar.IsDoorOpen(VehicleDoor.BackLeftDoor) && !LsMenuPool.IsAnyMenuOpen() && playerPed.IsStopped)
                                         {
                                             if (Game.GameTime > displayHelpTimer + 3000)
                                             {
                                                 displayHelpTimer = Game.GameTime;
                                                 DisplayHelpText("~INPUT_SPRINT~ to back doors.");
                                             }
-                                            if (Game.IsControlJustPressed(2, GTA.Control.Sprint) && !LsMenuPool.IsAnyMenuOpen())
+                                            if (Game.IsControlJustPressed(2, GTA.Control.Sprint) && !LsMenuPool.IsAnyMenuOpen() && playerPed.IsStopped)
                                             {
                                                 drugCar.OpenDoor(VehicleDoor.BackLeftDoor, false, false);
                                                 drugCar.OpenDoor(VehicleDoor.BackRightDoor, false, false);
@@ -1557,12 +1637,12 @@ namespace LSlife
                                         }
                                         else
                                         {
-                                            if (Game.GameTime > displayHelpTimer + 3000 && !LsMenuPool.IsAnyMenuOpen())
+                                            if (Game.GameTime > displayHelpTimer + 3000 && !LsMenuPool.IsAnyMenuOpen() && playerPed.IsStopped)
                                             {
                                                 displayHelpTimer = Game.GameTime;
                                                 DisplayHelpText("~INPUT_SPRINT~ to close back doors.");
                                             }
-                                            if (Game.IsControlJustPressed(2, GTA.Control.Sprint) && !LsMenuPool.IsAnyMenuOpen())
+                                            if (Game.IsControlJustPressed(2, GTA.Control.Sprint) && !LsMenuPool.IsAnyMenuOpen() && playerPed.IsStopped)
                                             {
                                                 drugCar.CloseDoor(VehicleDoor.BackLeftDoor, false);
                                                 drugCar.CloseDoor(VehicleDoor.BackRightDoor, false);
@@ -1598,7 +1678,7 @@ namespace LSlife
                         PedBag(playerPed, false);
                         playerHasBag = false;
                     }
-                    //Housing();
+                    Housing();
                     if (player.WantedLevel > 0 && playerWanted == false) { playerWanted = true; }
                     if (playerWanted && player.WantedLevel == 0) { playerWanted = false; }
                     if (drugCar != null)
@@ -2440,8 +2520,8 @@ namespace LSlife
 
                 if (playerPed.Position.DistanceTo(houseTeleOut) < 10f)
                 {
-                    World.DrawMarker(MarkerType.VerticalCylinder, new Vector3(-112.616f, -1479.229f, 36f), Vector3.Zero, Vector3.Zero, new Vector3(1f, 1f, 2f), Color.Yellow);
-                    if (playerPed.Position.DistanceTo(houseTeleOut) < 2f)
+                    World.DrawMarker(MarkerType.VerticalCylinder, new Vector3(-112.616f, -1479.229f, 36f), Vector3.Zero, Vector3.Zero, new Vector3(1f, 1f, 1f), Color.Green);
+                    if (playerPed.Position.DistanceTo(houseTeleOut) < 1f)
                     {
                         DisplayHelpText("Press ~INPUT_CONTEXT~ to enter Safehouse.");
                     }
@@ -2460,6 +2540,7 @@ namespace LSlife
             }
             if (isAtHome == true)
             {
+                World.DrawMarker(MarkerType.UpsideDownCone, new Vector3(houseStash.X, houseStash.Y, houseStash.Z-0.5f), Vector3.Zero, Vector3.Zero, new Vector3(1f, 1f, 0.5f), Color.Green);
                 if (pickupSpawned)
                 {
                     if (!healthPickup.ObjectExists())
@@ -2475,7 +2556,7 @@ namespace LSlife
 
                 }
 
-                if (playerPed.Position.DistanceTo(houseTeleIn) < 2f)
+                if (playerPed.Position.DistanceTo(houseTeleIn) < 1f)
                 {
                     DisplayHelpText("Press ~INPUT_CONTEXT~ to exit Safehouse.");
                 }
@@ -2490,7 +2571,7 @@ namespace LSlife
                     Game.FadeScreenIn(300);
                     isAtHome = false;
                 }
-                if (playerPed.Position.DistanceTo(houseStash) < 2f)
+                if (playerPed.Position.DistanceTo(houseStash) < 1f)
                 {
                     DisplayHelpText("Press ~INPUT_CONTEXT~ to open stash.");
                     if (Game.IsControlJustReleased(2, GTA.Control.Context) && !LsMenuPool.IsAnyMenuOpen())
@@ -2581,7 +2662,7 @@ namespace LSlife
 
         void DateTimeUpdate()
         {
-            if (World.CurrentDate.Hour > hour + 1)
+            if (World.CurrentDate.Hour > hour)
             {
                 hour = World.CurrentDate.Hour;
                 if (dealer1Weed == 0 || dealer1Crack == 0 || dealer1Cocain == 0)
@@ -2858,6 +2939,7 @@ namespace LSlife
                 this.vehicle = World.CreateVehicle(this.vehModel, GenerateSpawnPos(pos.Around(300), Nodetype.AnyRoad, false));
                 this.vehicle.IsPersistent = true;
                 this.vehicle.AddBlip();
+                this.vehicle.CurrentBlip.IsFriendly = true;
                 this.ped = World.CreatePed(pedModel, this.vehicle.Position);
                 this.ped.IsPersistent = true;
                 this.ped.SetIntoVehicle(this.vehicle, VehicleSeat.Driver);
