@@ -520,7 +520,7 @@ namespace LSlife
 
             EnableBlips = true;
 
-            xdoc = XDocument.Load("scripts\\LsLife_Weapons.xml");
+            xdoc = XDocument.Load("scripts\\LSLife\\LsLife_Weapons.xml");
             foreach (XElement element in xdoc.Descendants())
             {
                 if (element.Name == "weapon")
@@ -1260,6 +1260,7 @@ namespace LSlife
                 }
                 LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
             }
+            UpdateCarStash();
 
         }
         void onTakeVehicleMenuSelect(UIMenu sender, UIMenuItem item, int index)
@@ -1419,7 +1420,7 @@ namespace LSlife
                 }
                 LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
             }
-            UpdateInventory();
+            UpdateCarStash();
         }
 
 
@@ -1456,11 +1457,11 @@ namespace LSlife
 
             if (sender == putMoneyVeh)
             {
-                vehStashPutMenu.Subtitle.Caption = "Take $" + putMoneyVeh.Value;
+                vehStashPutMenu.Subtitle.Caption = "Put $" + putMoneyVeh.Value;
             }
             if (sender == takeMoneyVeh)
             {
-                vehStashTakeMenu.Subtitle.Caption = "Put $" + takeMoneyVeh.Value;
+                vehStashTakeMenu.Subtitle.Caption = "Take $" + takeMoneyVeh.Value;
             }
 
             //STASH SLIDERS
@@ -1687,7 +1688,7 @@ namespace LSlife
             {
                 if (putWeaponStash.Items.Count > 0)
                 {
-                    xdoc = XDocument.Load("scripts\\LSLife_Weapons.xml");
+                    xdoc = XDocument.Load("scripts\\LSLife\\LsLife_Weapons.xml");
                     int ID = 0;
                     int newID = 0;
                     if (xdoc.Descendants().Count() > 0)
@@ -1713,7 +1714,7 @@ namespace LSlife
                             w.SetAttributeValue("id", newID);
                             var rootElement = xdoc.Element("weapons");
                             rootElement?.Add(w);
-                            xdoc.Save("Scripts\\LSLife_Weapons.xml");
+                            xdoc.Save("scripts\\LSLife\\LsLife_Weapons.xml");
                             playerPed.Weapons.Remove(wep);
                             playerWeapons.Remove(w);
                             playerWeps.RemoveAt(putWeaponStash.Index);
@@ -1882,7 +1883,7 @@ namespace LSlife
             {
                 if (takeWeaponStash.Items.Count > 0)
                 {
-                    xdoc = XDocument.Load("scripts\\LSLife_Weapons.xml");
+                    xdoc = XDocument.Load("scripts\\LSLife\\LsLife_Weapons.xml");
                     XElement w = stashWeapons[takeWeaponStash.Index];
                     XElement HASH = null;
 
@@ -1926,7 +1927,7 @@ namespace LSlife
                                         stashWeapons.Remove(w);
                                         rootElement.Remove();
                                         stashWeps.RemoveAt(takeWeaponStash.Index);
-                                        xdoc.Save("Scripts\\LSLife_Weapons.xml");
+                                        xdoc.Save("scripts\\LSLife\\LsLife_Weapons.xml");
                                         break;
                                     }
                                 }
@@ -1986,8 +1987,12 @@ namespace LSlife
         {
             if (!Game.IsLoading)
             {
-                //myUIText = new UIText("" + Game.GameTime + " | ", new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
-                //myUIText.Draw();
+                if (drugCar != null)
+                {
+                    myUIText = new UIText("" + drugCar.Position + " | ", new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
+                    myUIText.Draw();
+                }
+                
                 playerGroup = playerPed.CurrentPedGroup;
                 if (LsMenuPool != null)
                 {
@@ -2282,6 +2287,10 @@ namespace LSlife
                                     if (drugCarPos != drugCar.Position && !playerPed.IsInVehicle())
                                     {
                                         drugCarPos = drugCar.Position;
+                                        drugCarPosX = drugCar.Position.X;
+                                        drugCarPosY = drugCar.Position.Y;
+                                        drugCarPosZ = drugCar.Position.Z;
+                                        //drugCarPosX = drugCar.Heading;
                                         //iniSettings.SetValue("DRUG CAR", "POSX", drugCarPos.X);
                                         //iniSettings.Save();
                                         //iniSettings.SetValue("DRUG CAR", "POSY", drugCarPos.Y);
@@ -2299,7 +2308,7 @@ namespace LSlife
                                                 {
                                                     if (drugCarEle.Name == "POSX")
                                                     {
-                                                        drugCarEle.Value = drugCarPos.X.ToString();
+                                                        drugCarEle.Value = drugCarPosX.ToString();
                                                     }
                                                     if (drugCarEle.Name == "POSY")
                                                     {
@@ -2309,7 +2318,7 @@ namespace LSlife
                                                     {
                                                         drugCarEle.Value = drugCarPos.Z.ToString();
                                                     }
-                                                    if (drugCarEle.Name == "POSX")
+                                                    if (drugCarEle.Name == "HEAD")
                                                     {
                                                         drugCarEle.Value = drugCar.Heading.ToString();
                                                     }
@@ -2373,6 +2382,7 @@ namespace LSlife
                                                     putCocainVeh.Maximum = PlayerInventory["Cocain"];
                                                 }
                                                 putMoneyVeh.Maximum = player.Money;
+                                                UpdateCarStash();
                                                 vehStashMainMenu.Visible = !vehStashMainMenu.Visible;
                                             }
                                         }
@@ -3400,8 +3410,25 @@ namespace LSlife
             }
         }
 
+
+        void UpdateCarStash()
+        {
+            putWeedVeh.Text = "Weed " + PlayerInventory["Weed"] + "g";
+            takeWeedVeh.Text = "Weed " + drugCarWeed + "g";
+            putCrackVeh.Text = "Weed " + PlayerInventory["Crack"] + "g";
+            takeCrackVeh.Text = "Weed " + drugCarCrack + "g";
+            putCocainVeh.Text = "Weed " + PlayerInventory["Cocain"] + "g";
+            takeCocainVeh.Text = "Weed " + drugCarCocain + "g";
+            putMoneyVeh.Text = "Money $ " + player.Money;
+            takeMoneyVeh.Text = "Money $ " + drugCarMoney;
+        }
+
+
+
+
         void UpdateInventory()
         {
+
             putWeedStash.Maximum = PlayerInventory["Weed"];
             putCrackStash.Maximum = PlayerInventory["Crack"];
             putCocainStash.Maximum = PlayerInventory["Cocain"];
@@ -3450,7 +3477,7 @@ namespace LSlife
             takeMoneyStash.Text = "Money $" + stashMoney + ".";
             stashWeapons.Clear();
             stashWeps.Clear();
-            xdoc = XDocument.Load("scripts\\LSLife_Weapons.xml");
+            xdoc = XDocument.Load("scripts\\LSLife\\LsLife_Weapons.xml");
             foreach (XElement element in xdoc.Descendants())
             {
                 if (element.Name == "weapon")
