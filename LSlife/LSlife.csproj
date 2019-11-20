@@ -84,6 +84,6 @@
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>copy "C:\Users\Mcal\source\repos\LSLife\LSlife\bin\Release\LSlife.dll" "F:\games\Grand Theft Auto V\scripts\LSlife.dll" /y</PostBuildEvent>
+    <PostBuildEvent>copy "C:\Users\Mcal\source\repos\LSLife\LSlife\bin\x64\Release\LSlife.dll" "F:\games\Grand Theft Auto V\scripts\LSlife.dll" /y</PostBuildEvent>
   </PropertyGroup>
 </Project>
