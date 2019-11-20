@@ -55,6 +55,8 @@ namespace LSlife
         UIMenuSliderItem takeMoneyStash;
         UIMenuListItem putWeaponStash;
         UIMenuListItem takeWeaponStash;
+        UIMenuListItem stashPutMultiplier;
+        UIMenuListItem stashTakeMultiplier;
 
         //Vehicle stash MENU
         UIMenu vehStashMainMenu;
@@ -70,6 +72,10 @@ namespace LSlife
         UIMenuSliderItem takeMoneyVeh;
         UIMenuListItem putWeaponVeh;
         UIMenuListItem takeWeaponVeh;
+        UIMenuListItem vehPutMultiplier;
+        UIMenuListItem vehTakeMultiplier;
+
+        List<dynamic> multiplier = new List<dynamic>() { { 1 }, { 10 }, { 100 }, { 1000 }, { 10000 }, { 100000 } };
 
         //Customer Menu
         UIMenu customerMainMenu;
@@ -325,16 +331,15 @@ namespace LSlife
         void Setup()
         {
 
-            iniSettings = ScriptSettings.Load("scripts\\LSlife.ini");
-
+            iniSettings = ScriptSettings.Load("scripts\\LSlife.ini");                                    
             DEBUG = iniSettings.GetValue<bool>("OPTIONS", "DEBUG", false);
-
             LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-            int number;
+            
             foreach (XElement element in LSLifeSave.Descendants())
             {
                 if (element.Name == "playerInventory")
                 {
+                    int number;
                     foreach (XElement e in element.Elements())
                     {
                         if (e.Name == "weed")
@@ -360,23 +365,20 @@ namespace LSlife
                     {
                         if (e.Name == "weed")
                         {
-                            Int32.TryParse(e.Value, out number);
-                           stashWeed = number;
+                            Int32.TryParse(e.Value, out stashWeed);                            
                         }
                         if (e.Name == "crack")
                         {
-                            Int32.TryParse(e.Value, out number);
-                            stashCrack = number;
+                            Int32.TryParse(e.Value, out stashCrack);                             
                         }
                         if (e.Name == "cocain")
                         {
-                            Int32.TryParse(e.Value, out number);
-                            stashCocain = number;
+                            Int32.TryParse(e.Value, out stashCocain);                             
                         }
                         if (e.Name == "money")
                         {
-                            Int32.TryParse(e.Value, out number);
-                            stashMoney = number;
+                            Int32.TryParse(e.Value, out stashMoney);
+
                         }
                     }
                 }
@@ -386,23 +388,19 @@ namespace LSlife
                     {
                         if (e.Name == "weed")
                         {
-                            Int32.TryParse(e.Value, out number);
-                            drugCarWeed = number;
+                            Int32.TryParse(e.Value, out drugCarWeed);                             
                         }
                         if (e.Name == "crack")
                         {
-                            Int32.TryParse(e.Value, out number);
-                            drugCarCrack = number;
+                            Int32.TryParse(e.Value, out drugCarCrack);                             
                         }
                         if (e.Name == "cocain")
                         {
-                            Int32.TryParse(e.Value, out number);
-                            drugCarCocain = number;
+                            Int32.TryParse(e.Value, out drugCarCocain);                             
                         }
                         if (e.Name == "money")
                         {
-                            Int32.TryParse(e.Value, out number);
-                            drugCarMoney = number;
+                            Int32.TryParse(e.Value, out drugCarMoney);                             
                         }
                     }
                 }
@@ -495,9 +493,7 @@ namespace LSlife
             {
                 TotalDrugsCarried += PlayerInventory[entry.Key];
             }
-
             EnableBlips = true;
-
             stashWeaponsXML = XDocument.Load("scripts\\LSLife\\LsLife_Weapons.xml");
             foreach (XElement element in stashWeaponsXML.Descendants())
             {
@@ -675,6 +671,14 @@ namespace LSlife
             takeMoneyStash.Multiplier = 100;
             putMoneyStash.OnSliderChanged += onSliderChange;
             takeMoneyStash.OnSliderChanged += onSliderChange;
+            //STASH MULTIPLIER
+            stashPutMultiplier = new UIMenuListItem("Multiplier", multiplier, 0);
+            stashPutMenu.AddItem(stashPutMultiplier);
+            stashPutMultiplier.OnListChanged += onListChange;
+            stashTakeMultiplier = new UIMenuListItem("Multiplier", multiplier, 0);
+            stashTakeMenu.AddItem(stashTakeMultiplier);
+            stashTakeMultiplier.OnListChanged += onListChange;
+
             //STASH WEAPONS
             if (playerWeapons.Count > 0)
             {
@@ -740,6 +744,14 @@ namespace LSlife
             takeMoneyVeh.Multiplier = 100;
             putMoneyVeh.OnSliderChanged += onSliderChange;
             takeMoneyVeh.OnSliderChanged += onSliderChange;
+            //VEH STASH MULIPLIER
+            vehPutMultiplier = new UIMenuListItem("Multiplier", multiplier, 0);
+            vehStashPutMenu.AddItem(vehPutMultiplier);
+            vehPutMultiplier.OnListChanged += onListChange;
+            vehTakeMultiplier = new UIMenuListItem("Multiplier", multiplier, 0);
+            vehStashTakeMenu.AddItem(vehTakeMultiplier);
+            vehTakeMultiplier.OnListChanged += onListChange;
+
             //VEHICLE WEAPONS
             if (playerWeapons.Count > 0)
             {
@@ -1009,11 +1021,7 @@ namespace LSlife
                     player.Money -= dealer1Debt;
                     dealer1Money += dealer1Debt;
                     drugDealer1.Money = dealer1Money;
-                    dealer1Debt = 0;
-                    //iniSettings.SetValue("DRUGDEALER1", "MONEY", dealer1Money);
-                    //iniSettings.Save();
-                    //iniSettings.SetValue("DRUGDEALER1", "DEBT", dealer1Debt);
-                    //iniSettings.Save();
+                    dealer1Debt = 0;                    
                     LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                     foreach (XElement element in LSLifeSave.Descendants())
                     {
@@ -1552,6 +1560,34 @@ namespace LSlife
             {
                 vehStashPutMenu.Subtitle.Caption = "Put " + playerWeps[putWeaponVeh.Index];
             }
+            if (sender == stashPutMultiplier)
+            {
+                putWeedStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
+                putCrackStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
+                putCocainStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
+                putMoneyStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
+            }
+            if (sender == stashTakeMultiplier)
+            {
+                takeWeedStash.Multiplier = (int)multiplier[stashTakeMultiplier.Index];
+                takeCrackStash.Multiplier = (int)multiplier[stashTakeMultiplier.Index];
+                takeCocainStash.Multiplier = (int)multiplier[stashTakeMultiplier.Index];
+                takeMoneyStash.Multiplier = (int)multiplier[stashTakeMultiplier.Index];
+            }
+            if (sender == vehPutMultiplier)
+            {
+                putWeedVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
+                putCrackVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
+                putCocainVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
+                putMoneyVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
+            }
+            if (sender == vehTakeMultiplier)
+            {
+                takeWeedVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
+                takeCrackVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
+                takeCocainVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
+                takeMoneyVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
+            }
 
         }
 
@@ -1958,13 +1994,21 @@ namespace LSlife
                 if (customerSellTo.FarAway)
                 {
                     jobs.Remove(customerSellTo);
-                    RemovePedFromWorld(customerSellTo.Ped);
+                    RemovePedFromWorld(customerSellTo.Ped, true);
                     lastTimeDealDone = Game.GameTime;
                 }
                 else
                 {
-                    customers.Remove(customerSellTo);
-                    RemovePedFromWorld(customerSellTo.Ped);
+                    if (customerSellTo.Vehicle != null && customerSellTo.Vehicle.Exists())
+                    {
+                        customerSellTo.Ped.Task.PerformSequence(PerformTaskSeq(1, customerSellTo.Vehicle));
+                        RemovePedFromWorld(customerSellTo.Ped, false);
+                    }
+                    else
+                    {
+                        RemovePedFromWorld(customerSellTo.Ped, true);
+                    }
+                    customers.Remove(customerSellTo);                    
                     lastTimeDealDone = Game.GameTime;
                 }
             }
@@ -2224,7 +2268,7 @@ namespace LSlife
                         {
                             if (attacker.IsDead)
                             {
-                                RemovePedFromWorld(attacker);
+                                RemovePedFromWorld(attacker, true);
                                 attacker = null;
                             }
                             else
@@ -2439,7 +2483,7 @@ namespace LSlife
                         {
                             if (drugDealer1.IsDead)
                             {
-                                RemovePedFromWorld(drugDealer1);
+                                RemovePedFromWorld(drugDealer1, true);
                                 drugDealer1 = null;
                             }
                         }
@@ -2460,7 +2504,7 @@ namespace LSlife
                                     {
                                         if (c.Ped.Exists())
                                         {
-                                            RemovePedFromWorld(c.Ped);
+                                            RemovePedFromWorld(c.Ped, true);
                                         }
                                     }
                                 }
@@ -2472,7 +2516,7 @@ namespace LSlife
                                 {
                                     if (p != null && p.Exists())
                                     {
-                                        RemovePedFromWorld(p);
+                                        RemovePedFromWorld(p, true);
                                     }
                                 }
                                 oldCustomers.Clear();
@@ -2484,7 +2528,7 @@ namespace LSlife
                                     if (c != null && c.Ped.Exists())
                                     {
                                         c.Ped.CurrentBlip.ShowRoute = false;
-                                        RemovePedFromWorld(c.Ped);
+                                        RemovePedFromWorld(c.Ped, true);
                                     }
                                 }
                                 jobs.Clear();
@@ -2520,7 +2564,7 @@ namespace LSlife
                                                     Ped newPed = World.CreatePed(p.Model, spawnPos);
                                                     if (newPed != null)
                                                     {
-                                                        jobs.Add(new Customer(newPed, spawnPos, 50, true));
+                                                        jobs.Add(new Customer(newPed, spawnPos, 50, true, null));
                                                         if (jobs.Count > 0)
                                                         {
                                                             Customer c = jobs[0];
@@ -2757,7 +2801,7 @@ namespace LSlife
                                     if (jobs[0].Ped != null)
                                     {
                                         Function.Call(Hash.CLEAR_ALL_HELP_MESSAGES);
-                                        RemovePedFromWorld(jobs[0].Ped);
+                                        RemovePedFromWorld(jobs[0].Ped, true);
                                         jobs.Clear();
                                     }
                                 }
@@ -2779,7 +2823,7 @@ namespace LSlife
                                     jobOffer = false;
                                     if (jobs[0].Ped != null)
                                     {
-                                        RemovePedFromWorld(jobs[0].Ped);
+                                        RemovePedFromWorld(jobs[0].Ped, true);
                                         jobs.Clear();
                                     }
                                 }
@@ -2803,7 +2847,7 @@ namespace LSlife
                                             {
                                                 isDealing = false;
                                                 UI.Notify("You got nothing to sell.");
-                                                RemovePedFromWorld(j.Ped);
+                                                RemovePedFromWorld(j.Ped, true);
                                                 jobs.Remove(j);
                                                 lastTimeDealDone = Game.GameTime;
                                                 jobAccepted = false;
@@ -2928,8 +2972,18 @@ namespace LSlife
                                                         {
                                                             if (p.CurrentPedGroup != playerPed.CurrentPedGroup)
                                                             {
-                                                                customers.Add(new Customer(p, playerPos, wealth, false));
-                                                                break;
+                                                                if (p.IsInVehicle() && p.CurrentVehicle.Driver == p)
+                                                                {
+                                                                    Vehicle vehicle = p.CurrentVehicle;
+                                                                    customers.Add(new Customer(p, playerPos, wealth, false, vehicle));
+                                                                    break;
+                                                                }
+                                                                else
+                                                                {
+                                                                    customers.Add(new Customer(p, playerPos, wealth, false, null));
+                                                                    break;
+                                                                }
+                                                                
                                                             }                                                            
                                                         }
                                                     }
@@ -2952,7 +3006,7 @@ namespace LSlife
                                         if (c.Ped.Position.DistanceTo(playerPed.Position) > 60f)
                                         {
                                             customers.Remove(c);
-                                            RemovePedFromWorld(c.Ped);
+                                            RemovePedFromWorld(c.Ped, true);
                                             break;
                                         }
                                         if (Game.GameTime > lastCustomerCheckTimer + 200)
@@ -2975,7 +3029,7 @@ namespace LSlife
                                             {
                                                 isDealing = false;
                                                 UI.Notify("You ran out of drugs, go buy somemore.");
-                                                RemovePedFromWorld(c.Ped);
+                                                RemovePedFromWorld(c.Ped, true);
                                                 customers.Remove(c);
                                                 lastTimeDealDone = Game.GameTime;
                                                 break;
@@ -3020,7 +3074,7 @@ namespace LSlife
                                     if (c.Ped.IsDead)
                                     {
                                         customers.Remove(c);
-                                        RemovePedFromWorld(c.Ped);
+                                        RemovePedFromWorld(c.Ped, true);
                                         break;
                                     }
                                 }
@@ -3665,13 +3719,16 @@ namespace LSlife
             }
         }
 
-        void RemovePedFromWorld(Ped ped)
+        void RemovePedFromWorld(Ped ped, bool clearTask)
         {
             ped.CurrentBlip.Remove();
             ped.LeaveGroup();
-            ped.Task.ClearAll();
+            if (clearTask)
+            {
+                ped.Task.ClearAll();
+            }            
             ped.MarkAsNoLongerNeeded();
-            ped.BlockPermanentEvents = false;
+            ped.BlockPermanentEvents = true;
             ped.IsPersistent = false;
         }
 
@@ -3776,6 +3833,30 @@ namespace LSlife
             }
         }
 
+        public static TaskSequence PerformTaskSeq(int index, Vehicle vehicle)
+        {
+            if (index == 0)
+            {
+                TaskSequence exitVehAndWalk = new TaskSequence();
+                exitVehAndWalk.AddTask.LeaveVehicle();
+                exitVehAndWalk.AddTask.WanderAround();
+                return exitVehAndWalk;
+            }
+            else
+            if (index == 1)
+            {
+                TaskSequence walkToVehicleDrive = new TaskSequence();
+                walkToVehicleDrive.AddTask.GoTo(vehicle.GetOffsetInWorldCoords(new Vector3(0, -3, 0)));
+                walkToVehicleDrive.AddTask.EnterVehicle(vehicle, VehicleSeat.Driver);
+                walkToVehicleDrive.AddTask.CruiseWithVehicle(vehicle, 30f, (int)DrivingStyle.Normal);
+                return walkToVehicleDrive;                
+            }
+            else
+            {
+                return null;
+            }
+        }
+
         void MoveCustomer(Customer c, Vector3 target)
         {
             if (c.Target == target)
@@ -3798,15 +3879,11 @@ namespace LSlife
             if (c.drug == "Weed") { price = 50; }
             if (c.drug == "Crack") { price = 200; }
             if (c.drug == "Cocain") { price = 400; }
-            Ped p = c.Ped;
-            TaskSequence exitVehAndWalk = new TaskSequence();
-            exitVehAndWalk.AddTask.LeaveVehicle();
-            exitVehAndWalk.AddTask.WanderAround();
+            Ped p = c.Ped;                               
             if (inCar == false)
             {
                 playerPed.Task.TurnTo(p);
-                Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_HOWS_IT_GOING", "SPEECH_PARAMS_STANDARD");
-                
+                Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_HOWS_IT_GOING", "SPEECH_PARAMS_STANDARD");                
                 Wait(1000);
                 p.Task.PlayAnimation("switch@franklin@002110_04_magd_3_weed_exchange", "002110_04_magd_3_weed_exchange_franklin", 8.0f, 3000, AnimationFlags.UpperBodyOnly);
                 playerPed.Task.PlayAnimation("switch@franklin@002110_04_magd_3_weed_exchange", "002110_04_magd_3_weed_exchange_shopkeeper", 8.0f, 3000, AnimationFlags.UpperBodyOnly);
@@ -3818,15 +3895,27 @@ namespace LSlife
                 UI.Notify("Sold " + c.amount + "g, you got " + PlayerInventory[c.drug] + "g " + c.drug + " left.");
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_THANKS", "SPEECH_PARAMS_STANDARD");
                 oldCustomers.Add(p);
+                if (c.Vehicle != null && c.Vehicle.Exists())
+                {
+                    c.Ped.Task.PerformSequence(PerformTaskSeq(1, c.Vehicle));
+                }                
                 if (c.FarAway)
                 {
                     jobs.Remove(c);
-                    RemovePedFromWorld(p);
+                    RemovePedFromWorld(p, true);
                 }
                 else
                 {
                     customers.Remove(c);
-                    RemovePedFromWorld(p);
+                    if (c.Vehicle != null && c.Vehicle.Exists())
+                    {
+                        RemovePedFromWorld(p, false);
+                    }
+                    else
+                    {
+                        RemovePedFromWorld(p, true);
+                    }
+                    
                 }
                 TotalDrugsCarried = 0;
                 foreach (KeyValuePair<string, int> entry in PlayerInventory)
@@ -3845,18 +3934,32 @@ namespace LSlife
                 PlayerInventory[c.drug] -= c.amount;
                 Function.Call(Hash.PLAY_SOUND_FRONTEND, -1, "LOCAL_PLYR_CASH_COUNTER_INCREASE", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", 0);
                 UI.Notify("Sold " + c.amount + "g, you got " + PlayerInventory[c.drug] + "g " + c.drug + " left.");
-                p.Task.PerformSequence(exitVehAndWalk);
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_THANKS", "SPEECH_PARAMS_STANDARD");
+                if (c.Vehicle != null && c.Vehicle.Exists())
+                {
+                    c.Ped.Task.PerformSequence(PerformTaskSeq(1, c.Vehicle));
+                }
+                else
+                {
+                    c.Ped.Task.PerformSequence(PerformTaskSeq(0, null));
+                }
                 oldCustomers.Add(p);
                 if (c.FarAway)
                 {
                     jobs.Remove(c);
-                    RemovePedFromWorld(p);
+                    RemovePedFromWorld(p, true);
                 }
                 else
                 {
                     customers.Remove(c);
-                    RemovePedFromWorld(p);
+                    if (c.Vehicle != null && c.Vehicle.Exists())
+                    {
+                        RemovePedFromWorld(p, false);
+                    }
+                    else
+                    {
+                        RemovePedFromWorld(p, true);
+                    }
                 }
                 TotalDrugsCarried = 0;
                 foreach (KeyValuePair<string, int> entry in PlayerInventory)
@@ -3947,6 +4050,7 @@ namespace LSlife
         {
             private Ped ped;
             private Vector3 target;
+            private Vehicle vehicle;
             public List<string> drugs = new List<string>();
             private int wealth;
             public string drug;
@@ -3954,13 +4058,14 @@ namespace LSlife
             private bool farAway;
             public int price = 0;
 
-            public Customer(Ped ped, Vector3 target, int wealth, bool farAway)
+            public Customer(Ped ped, Vector3 target, int wealth, bool farAway, Vehicle vehicle)
             {
                 //init
                 FarAway = farAway;
                 Wealth = wealth;
                 Ped = ped;
                 Target = target;
+                Vehicle = vehicle;
                 ped.AddBlip();
                 ped.CurrentBlip.IsFriendly = true;
                 ped.CurrentBlip.Scale = 0.5f;
@@ -3986,6 +4091,7 @@ namespace LSlife
             }
             public Vector3 Target { get => target; set => target = value; }
             public Ped Ped { get => ped; set => ped = value; }
+            public Vehicle Vehicle { get => vehicle; set => vehicle = value; }
             public int Wealth { get => wealth; set => wealth = value; }
             public bool FarAway { get => farAway; set => farAway = value; }
         }
