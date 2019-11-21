@@ -458,7 +458,16 @@ namespace LSlife
                     {
                         if (e.Name == "HASH")
                         {
-                            drugCarModel = e.Value;
+                            if (e.Value != "")
+                            {
+                                
+                                drugCarModel = e.Value;
+                            }
+                            else
+                            {
+                                drugCarModel = "";
+                            }
+                            
                         }
                         if (e.Name == "POSX")
                         {
@@ -2283,12 +2292,12 @@ namespace LSlife
                     }
                     if (playerPed != null && playerPed.IsAlive && player.IsPlaying)
                     {
-                        if (Game.Player != player)
-                        {
-                            player = Game.Player;
-                            playerPed = Game.Player.Character;
-                            UI.Notify("LS Life: Player Character changed");
-                        }
+                        //if (Game.Player != player)
+                        //{
+                        //    player = Game.Player;
+                        //    playerPed = Game.Player.Character;
+                        //    UI.Notify("LS Life: Player Character changed");
+                        //}
                             
                         if (attacker != null)
                         {
@@ -2315,12 +2324,13 @@ namespace LSlife
                             }
                         }
                         if (drugCarModel != "" && drugCar == null && playerPed.Position.DistanceTo(drugCarPos) <= 200)
-                        {
+                        {                            
                             if (drugCarBlip != null)
                             {
                                 drugCarBlip.Remove();
                                 drugCarBlip = null;
                             }
+                            //Enum.TryParse<Model>(drugCarModel, out Model model);
                             drugCar = World.CreateVehicle(new Model(drugCarModel), drugCarPos, drugCarHead);
                             //UI.Notify("" + drugCarModel + " | " + drugCarPos + " | " + playerPed.Position);
                             drugCar.IsPersistent = true;
@@ -2469,30 +2479,34 @@ namespace LSlife
 
                         if (drugCarModel != "" && drugCar != null && playerPed.Position.DistanceTo(drugCarPos) > 200)
                         {
-                            if (playerPed.IsInVehicle() && playerPed.CurrentVehicle != drugCar)
+                            if (drugCar.Exists())
                             {
-                                drugCarBlip = World.CreateBlip(drugCarPos);
-                                drugCarBlip.IsShortRange = true;
-                                drugCarBlip.IsFriendly = true;
-                                drugCarBlip.Sprite = BlipSprite.PersonalVehicleCar;
-                                drugCarBlip.Name = "Drug Car";
-                                drugCarBlip.Color = BlipColor.Green;
-                                drugCar.CurrentBlip.Remove();
-                                drugCar.Delete();
-                                drugCar = null;
+                                if (playerPed.IsInVehicle() && playerPed.CurrentVehicle != drugCar)
+                                {
+                                    drugCarBlip = World.CreateBlip(drugCarPos);
+                                    drugCarBlip.IsShortRange = true;
+                                    drugCarBlip.IsFriendly = true;
+                                    drugCarBlip.Sprite = BlipSprite.PersonalVehicleCar;
+                                    drugCarBlip.Name = "Drug Car";
+                                    drugCarBlip.Color = BlipColor.Green;
+                                    drugCar.CurrentBlip.Remove();
+                                    drugCar.Delete();
+                                    drugCar = null;
+                                }
+                                if (!playerPed.IsInVehicle())
+                                {
+                                    drugCarBlip = World.CreateBlip(drugCarPos);
+                                    drugCarBlip.IsShortRange = true;
+                                    drugCarBlip.IsFriendly = true;
+                                    drugCarBlip.Sprite = BlipSprite.PersonalVehicleCar;
+                                    drugCarBlip.Name = "Drug Car";
+                                    drugCarBlip.Color = BlipColor.Green;
+                                    drugCar.CurrentBlip.Remove();
+                                    drugCar.Delete();
+                                    drugCar = null;
+                                }
                             }
-                            if (!playerPed.IsInVehicle())
-                            {
-                                drugCarBlip = World.CreateBlip(drugCarPos);
-                                drugCarBlip.IsShortRange = true;
-                                drugCarBlip.IsFriendly = true;
-                                drugCarBlip.Sprite = BlipSprite.PersonalVehicleCar;
-                                drugCarBlip.Name = "Drug Car";
-                                drugCarBlip.Color = BlipColor.Green;
-                                drugCar.CurrentBlip.Remove();
-                                drugCar.Delete();
-                                drugCar = null;
-                            }
+                            
 
                         }
                         if (drugCarModel != "" && drugCar == null && drugCarBlip == null)
@@ -3240,6 +3254,8 @@ namespace LSlife
             {
                 if (playerPed.IsInVehicle())
                 {
+                    Enum.TryParse(playerPed.CurrentVehicle.Model.ToString(), out VehicleHash hash);
+                    UI.Notify(""+ playerPed.CurrentVehicle.Model.ToString() +" | "+ hash +" | "+ playerPed.CurrentVehicle.Model.Hash);
                     if (playerPed.CurrentVehicle.Model.IsCar)
                     {
                         drugCar = playerPed.CurrentVehicle;
@@ -3262,7 +3278,7 @@ namespace LSlife
                                 {
                                     if (drugCarEle.Name == "HASH")
                                     {
-                                        drugCarEle.Value = drugCar.DisplayName;
+                                        drugCarEle.Value = drugCarModel;
                                     }
                                     if (drugCarEle.Name == "POSX")
                                     {
@@ -3321,7 +3337,19 @@ namespace LSlife
                 }
 
             }
-            //if (e.KeyCode == Keys.J && started == false)
+            if (e.KeyCode == Keys.J && started == false)
+            {
+                if (playerPed.IsInVehicle())
+                {
+                    Vehicle veh = playerPed.CurrentVehicle;
+                    UI.Notify("" + veh.Model.Hash+" | " + veh.DisplayName + " | "+Function.Call<Hash>(Hash.GET_ENTITY_MODEL, veh.Handle));
+                    
+                    //foreach (VehicleHash veh2 in Enum.GetValues(typeof(VehicleHash)))
+                    //{
+                        
+                    //}
+                }
+            }
             //{
             //    drugCar = World.CreateVehicle(new Model(drugCarModel), drugCarPos, drugCarHead);
             //    UI.Notify("" + drugCarModel + " | " + drugCarPos + " | " + playerPed.Position);
@@ -3948,7 +3976,7 @@ namespace LSlife
 
         void MakeStreetSale(Customer c, bool inCar)
         {
-            
+            List<Ped> police = new List<Ped>();
             
             int price = 0;
             if (c.drug == "Weed") { price = 50; }
@@ -3956,14 +3984,15 @@ namespace LSlife
             if (c.drug == "Cocain") { price = 400; }
             Ped p = c.Ped;                               
             if (inCar == false)
-            {
-                var peds = World.GetNearbyPeds(playerPed.Position, 25);
-                foreach (Ped ped in peds)
+            {                
+                foreach (Ped ped in World.GetNearbyPeds(playerPed.Position, 25))
                 {
                     if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
                     {
-                        p.Task.LookAt(playerPed, 10000);
+                        police.Add(ped);
+                        ped.Task.LookAt(playerPed, 10000);
                         UI.Notify("Police looking at you.");
+                        
                         //player.WantedLevel = 1;
                         //break;
                         //
@@ -3974,25 +4003,24 @@ namespace LSlife
                 Wait(1000);
                 p.Task.PlayAnimation("switch@franklin@002110_04_magd_3_weed_exchange", "002110_04_magd_3_weed_exchange_franklin", 8.0f, 3000, AnimationFlags.UpperBodyOnly);
                 playerPed.Task.PlayAnimation("switch@franklin@002110_04_magd_3_weed_exchange", "002110_04_magd_3_weed_exchange_shopkeeper", 8.0f, 3000, AnimationFlags.UpperBodyOnly);
-                Wait(3000);
+                Wait(2000);
                 player.Money += customerSellTo.amount * price;
                 customerSellTo.Ped.Money -= customerSellTo.amount * customerSellTo.price;
                 PlayerInventory[c.drug] -= c.amount;
                 Function.Call(Hash.PLAY_SOUND_FRONTEND, -1, "LOCAL_PLYR_CASH_COUNTER_INCREASE", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", 0);
                 UI.Notify("Sold " + c.amount + "g, you got " + PlayerInventory[c.drug] + "g " + c.drug + " left.");
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_THANKS", "SPEECH_PARAMS_STANDARD");
-                foreach (Ped ped in peds)
+                foreach (Ped ped in police)
                 {
-                    if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
+                    //if (ped.)
+                    if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
                     {
-                        if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
-                        {
-                            UI.Notify("Police saw you");
-                            player.WantedLevel = 1;
-                            break;
-                        }                                                                                                                      
+                        UI.Notify("Police saw you");
+                        player.WantedLevel = 1;
+                        break;                                                                                                                    
                     }
-                }          
+                }
+                police.Clear();
                 oldCustomers.Add(p);
                 if (c.Vehicle != null && c.Vehicle.Exists())
                 {
@@ -4024,33 +4052,38 @@ namespace LSlife
             }
             else
             {
-                if(playerPed.CurrentVehicle.Model.IsCar)
-                {
-                    var peds = World.GetNearbyPeds(playerPed.Position, 20);
-                    foreach (Ped ped in peds)
+                
+                if (playerPed.CurrentVehicle.Model.IsCar)
+                {                    
                     {
-                        if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
+                        foreach (Ped ped in World.GetNearbyPeds(playerPed.Position, 20))
                         {
-                            UI.Notify("Police saw you");
-                            player.WantedLevel = 1;
-                            break;
-                            //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
-                            //{
+                            if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
+                            {
+                                police.Add(ped);
+                                ped.Task.LookAt(playerPed, 10000);
+                                UI.Notify("Looking at you");
+                                //player.WantedLevel = 1;
+                                //break;
+                                //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
+                                //{
 
-                            //}
+                                //}
+                            }
                         }
-                    }
+                    }                    
                 }
                 else
                 {
-                    var peds = World.GetNearbyPeds(playerPed.Position, 25);
-                    foreach (Ped ped in peds)
+                    foreach (Ped ped in World.GetNearbyPeds(playerPed.Position, 25))
                     {
                         if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
                         {
-                            UI.Notify("Police saw you");
-                            player.WantedLevel = 1;
-                            break;
+                            police.Add(ped);
+                            ped.Task.LookAt(playerPed, 10000);
+                            UI.Notify("Looking at you");
+                            //player.WantedLevel = 1;
+                           // break;
                             //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
                             //{
 
@@ -4069,6 +4102,19 @@ namespace LSlife
                 Function.Call(Hash.PLAY_SOUND_FRONTEND, -1, "LOCAL_PLYR_CASH_COUNTER_INCREASE", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", 0);
                 UI.Notify("Sold " + c.amount + "g, you got " + PlayerInventory[c.drug] + "g " + c.drug + " left.");
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_THANKS", "SPEECH_PARAMS_STANDARD");
+                foreach (Ped ped in police)
+                {
+                    if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
+                    {
+                        if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
+                        {
+                            UI.Notify("Police saw you");
+                            player.WantedLevel = 1;
+                            break;
+                        }
+                    }
+                }
+                police.Clear();                
                 if (c.Vehicle != null && c.Vehicle.Exists())
                 {
                     c.Ped.Task.PerformSequence(PerformTaskSeq(1, c.Vehicle));
