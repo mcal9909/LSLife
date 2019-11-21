@@ -3957,18 +3957,16 @@ namespace LSlife
             Ped p = c.Ped;                               
             if (inCar == false)
             {
-                var peds = World.GetNearbyPeds(playerPed.Position, 30);
+                var peds = World.GetNearbyPeds(playerPed.Position, 25);
                 foreach (Ped ped in peds)
                 {
                     if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
                     {
-                        UI.Notify("Police saw you");
-                        player.WantedLevel = 1;
-                        break;
-                        //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
-                        //{
-
-                        //}
+                        p.Task.LookAt(playerPed, 10000);
+                        UI.Notify("Police looking at you.");
+                        //player.WantedLevel = 1;
+                        //break;
+                        //
                     }
                 }
                 playerPed.Task.TurnTo(p);
@@ -3983,6 +3981,18 @@ namespace LSlife
                 Function.Call(Hash.PLAY_SOUND_FRONTEND, -1, "LOCAL_PLYR_CASH_COUNTER_INCREASE", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", 0);
                 UI.Notify("Sold " + c.amount + "g, you got " + PlayerInventory[c.drug] + "g " + c.drug + " left.");
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_THANKS", "SPEECH_PARAMS_STANDARD");
+                foreach (Ped ped in peds)
+                {
+                    if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
+                    {
+                        if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
+                        {
+                            UI.Notify("Police saw you");
+                            player.WantedLevel = 1;
+                            break;
+                        }                                                                                                                      
+                    }
+                }          
                 oldCustomers.Add(p);
                 if (c.Vehicle != null && c.Vehicle.Exists())
                 {
@@ -4033,23 +4043,20 @@ namespace LSlife
                 }
                 else
                 {
-                    if (playerPed.CurrentVehicle.Model.IsCar)
+                    var peds = World.GetNearbyPeds(playerPed.Position, 25);
+                    foreach (Ped ped in peds)
                     {
-                        var peds = World.GetNearbyPeds(playerPed.Position, 25);
-                        foreach (Ped ped in peds)
+                        if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
                         {
-                            if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
-                            {
-                                UI.Notify("Police saw you");
-                                player.WantedLevel = 1;
-                                break;
-                                //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
-                                //{
+                            UI.Notify("Police saw you");
+                            player.WantedLevel = 1;
+                            break;
+                            //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
+                            //{
 
-                                //}
-                            }
+                            //}
                         }
-                    }
+                    }                    
                 }
                 
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_HOWS_IT_GOING", "SPEECH_PARAMS_STANDARD");
