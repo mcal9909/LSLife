@@ -115,6 +115,7 @@ namespace LSlife
         int dealerTimer;
         Blip stashBlip;
         bool readyToDeal;
+        bool dealer1Angry;
         int weed1Price = 1000;
         int crack1Price = 5000;
         int cocain1Price = 10000;
@@ -411,6 +412,15 @@ namespace LSlife
                         if (e.Name == "debt")
                         {
                             Int32.TryParse(e.Value, out dealer1Debt);
+                            if(dealer1Debt > 100000)
+                            {
+                                dealer1Debt = 100000;
+                                dealer1Angry = true;
+                            }
+                            else
+                            {
+                                dealer1Angry = false;
+                            }
                         }
                         if (e.Name == "weed")
                         {
@@ -2043,7 +2053,7 @@ namespace LSlife
                 {
                     timerBarPool.Draw();
                 }
-
+                // 300ms delay
                 if (Game.GameTime > dayUpdateTimer + 300)
                 {
                     playerGroup = playerPed.CurrentPedGroup;
@@ -2273,6 +2283,13 @@ namespace LSlife
                     }
                     if (playerPed != null && playerPed.IsAlive && player.IsPlaying)
                     {
+                        if (Game.Player != player)
+                        {
+                            player = Game.Player;
+                            playerPed = Game.Player.Character;
+                            UI.Notify("LS Life: Player Character changed");
+                        }
+                            
                         if (attacker != null)
                         {
                             if (attacker.IsDead)
@@ -2651,12 +2668,7 @@ namespace LSlife
                             }
                         }
                     }
-                }
-                
-
-
-
-
+                }       
 
                 // if we alive do this stuff each Tick.
                 if (playerPed != null && playerPed.IsAlive && player.IsPlaying)
@@ -2955,12 +2967,13 @@ namespace LSlife
                         //select ped for deal
                         if (customers.Count < 5 && jobs.Count == 0)
                         {
-                            if (Game.GameTime > lastTimePedSelected + 10000)
+                            if (Game.GameTime > lastTimePedSelected + 5000)
                             {
+                                lastTimePedSelected = Game.GameTime;
                                 int getPed = rnd.Next(0, 100);
                                 if (getPed > 75)
                                 {
-                                    lastTimePedSelected = Game.GameTime;
+                                    
                                     Vector3 playerPos = Game.Player.Character.Position;
                                     foreach (Ped p in World.GetAllPeds())
                                     {
@@ -3790,9 +3803,54 @@ namespace LSlife
                 if (dealer1Weed > 0)
                 {
                     dealer1Weed -= 10;
+                    foreach (XElement element in LSLifeSave.Descendants())
+                    {
+                        if (element.Name == "dealer1")
+                        {
+                            foreach (XElement drugCarEle in element.Elements())
+                            {
+                                if (drugCarEle.Name == "weed")
+                                {
+                                    drugCarEle.Value = dealer1Weed.ToString();
+                                }
+                            }
+                        }
+                    }
                 }
-                if (dealer1Crack > 0) { dealer1Crack -= 1; }
-                if (dealer1Cocain > 0) { dealer1Cocain -= 1; }
+                if (dealer1Crack > 0)
+                {
+                    dealer1Crack -= 1;
+                    foreach (XElement element in LSLifeSave.Descendants())
+                    {
+                        if (element.Name == "dealer1")
+                        {
+                            foreach (XElement drugCarEle in element.Elements())
+                            {
+                                if (drugCarEle.Name == "crack")
+                                {
+                                    drugCarEle.Value = dealer1Crack.ToString();
+                                }
+                            }
+                        }
+                    }
+                }
+                if (dealer1Cocain > 0)
+                {
+                    dealer1Cocain -= 1;
+                    foreach (XElement element in LSLifeSave.Descendants())
+                    {
+                        if (element.Name == "dealer1")
+                        {
+                            foreach (XElement drugCarEle in element.Elements())
+                            {
+                                if (drugCarEle.Name == "cocain")
+                                {
+                                    drugCarEle.Value = dealer1Cocain.ToString();
+                                }
+                            }
+                        }
+                    }
+                }
                 LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
             }
             if (day == dealer1ReloadDay && !dealer1Reloaded)
@@ -3888,10 +3946,10 @@ namespace LSlife
 
         void MakeStreetSale(Customer c, bool inCar)
         {
-            var peds = World.GetNearbyPeds(playerPed.Position, 30);
+            var peds = World.GetNearbyPeds(playerPed.Position, 25);
             foreach(Ped ped in peds)
             {
-                if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) != 6)
+                if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
                 {
                     UI.Notify("Police saw you");
                     player.WantedLevel = 1;
