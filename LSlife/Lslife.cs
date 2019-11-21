@@ -2586,7 +2586,7 @@ namespace LSlife
                             {
                                 jobOfferTimer = Game.GameTime;
                                 int r = rnd.Next(0, 100);
-                                if (r > 75)
+                                if (r > 70)
                                 {
                                     Vector3 spawnPos = GenerateSpawnPos(playerPed.Position.Around(300f), Nodetype.Offroad, true);
                                     var peds = World.GetNearbyPeds(playerPed.Position, 300f);
@@ -2985,7 +2985,7 @@ namespace LSlife
                             {
                                 lastTimePedSelected = Game.GameTime;
                                 int getPed = rnd.Next(0, 100);
-                                if (getPed > 75)
+                                if (getPed > 65)
                                 {
                                     
                                     Vector3 playerPos = Game.Player.Character.Position;
@@ -2995,7 +2995,8 @@ namespace LSlife
                                         {
                                             float dist = p.Position.DistanceTo(playerPos);
                                             //Ped is within 30m and its heading the player's way
-                                            if (dist < 30f && (p.Position + p.Velocity).DistanceTo(playerPos) < dist)
+                                            if (dist < 50f && (p.Position + p.Velocity).DistanceTo(playerPos) < dist)
+                                            
                                             {
                                                 //None of the current Customers has the same Handle as this ped
                                                 //So this ped is not a registered customer
@@ -3032,26 +3033,50 @@ namespace LSlife
                         //do the deal
                         if (customers.Count > 0)
                         {
+                            if (Game.GameTime > lastCustomerCheckTimer + 250)
+                            {                                
+                                foreach (Customer c in customers)
+                                {
+                                    if (c != null)
+                                    {
+                                        if (c.Ped.Exists() && c.Ped.IsAlive && !c.Ped.IsPlayer)
+                                        {
+                                            if (c.Ped.Position.DistanceTo(playerPed.Position) > 60f)
+                                            {
+                                                customers.Remove(c);
+                                                RemovePedFromWorld(c.Ped, true);
+                                                break;
+                                            }
+                                            if (c.Ped.CurrentPedGroup != playerPed.CurrentPedGroup && c.Ped.Position.DistanceTo(playerPed.Position) > 3f)
+                                            {
+                                                if (c.Ped.IsInVehicle())
+                                                {
+                                                    MoveCustomer(c, playerPed.Position);
+                                                    lastCustomerCheckTimer = Game.GameTime;
+                                                    break;
+                                                }
+                                                else
+                                                {
+                                                    if (c.Target != playerPed.Position)
+                                                    {
+                                                        c.Target = playerPed.Position;
+                                                        c.Ped.Task.PerformSequence(PerformTaskSeq(2, c.Ped.CurrentVehicle));
+                                                        lastCustomerCheckTimer = Game.GameTime;
+                                                        break;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }                            
                             foreach (Customer c in customers)
                             {
-                                if (c != null && c.Ped != null)
+                                if (c != null)
                                 {
                                     if (c.Ped.Exists() == true && c.Ped.IsAlive && !c.Ped.IsPlayer)
                                     {
-                                        if (c.Ped.Position.DistanceTo(playerPed.Position) > 60f)
-                                        {
-                                            customers.Remove(c);
-                                            RemovePedFromWorld(c.Ped, true);
-                                            break;
-                                        }
-                                        if (Game.GameTime > lastCustomerCheckTimer + 200)
-                                        {
-                                            if (c.Ped.CurrentPedGroup != playerPed.CurrentPedGroup && c.Ped.Position.DistanceTo(playerPed.Position) > 3f)
-                                            {
-                                                MoveCustomer(c, playerPed.Position);
-                                                lastCustomerCheckTimer = Game.GameTime;
-                                            }
-                                        }
+                                        
                                         if (c.Ped.CurrentPedGroup != playerPed.CurrentPedGroup && c.Ped.Position.DistanceTo(playerPed.Position) <= 3f)
                                         {
                                             c.Ped.Task.ClearAll();
@@ -3338,12 +3363,11 @@ namespace LSlife
 
             }
             if (e.KeyCode == Keys.J && started == false)
-            {
+            {                
                 if (playerPed.IsInVehicle())
                 {
                     Vehicle veh = playerPed.CurrentVehicle;
-                    UI.Notify("" + veh.Model.Hash+" | " + veh.DisplayName + " | "+Function.Call<Hash>(Hash.GET_ENTITY_MODEL, veh.Handle));
-                    
+                    UI.Notify("" + veh.Model.Hash+" | " + veh.DisplayName);                    
                     //foreach (VehicleHash veh2 in Enum.GetValues(typeof(VehicleHash)))
                     //{
                         
@@ -3942,8 +3966,7 @@ namespace LSlife
                 exitVehAndWalk.AddTask.LeaveVehicle();
                 exitVehAndWalk.AddTask.WanderAround();
                 return exitVehAndWalk;
-            }
-            else
+            }            
             if (index == 1)
             {
                 TaskSequence walkToVehicleDrive = new TaskSequence();
@@ -3951,7 +3974,14 @@ namespace LSlife
                 walkToVehicleDrive.AddTask.EnterVehicle(vehicle, VehicleSeat.Driver);
                 walkToVehicleDrive.AddTask.CruiseWithVehicle(vehicle, 30f, (int)DrivingStyle.Normal);
                 return walkToVehicleDrive;                
-            }
+            }            
+            if ( index == 2)
+            {
+                TaskSequence driveToPlayerAndExit = new TaskSequence();
+                driveToPlayerAndExit.AddTask.DriveTo(vehicle, Game.Player.Character.Position, 10f, 20f, (int)DrivingStyle.Normal);
+                driveToPlayerAndExit.AddTask.GoTo(Game.Player.Character.Position);
+                return driveToPlayerAndExit;
+            }            
             else
             {
                 return null;
@@ -4267,7 +4297,8 @@ namespace LSlife
                 if (drug == "Cocain") { price = 400; }
                 int extraMoney = rnd.Next(0, 500);
                 Ped.Money = (amount * price) + extraMoney;
-                if (!FarAway) { Ped.Task.GoTo(target); }
+                if (!FarAway && vehicle == null) { Ped.Task.GoTo(target); }
+                if (!FarAway && vehicle != null) { PerformTaskSeq(2, vehicle); }
             }
             public Vector3 Target { get => target; set => target = value; }
             public Ped Ped { get => ped; set => ped = value; }
