@@ -3757,7 +3757,7 @@ namespace LSlife
         {
             if (Function.Call<int>(Hash.GET_CLOCK_HOURS) != hour)
             {
-                
+
                 hour = Function.Call<int>(Hash.GET_CLOCK_HOURS);
                 if (dealer1Weed == 0 || dealer1Crack == 0 || dealer1Cocain == 0)
                 {
@@ -3771,14 +3771,16 @@ namespace LSlife
                         else
                         {
                             dealer1ReloadDay = day + 1;
-                        }                        
+                        }
                         UI.Notify("Zee has ordered a reload, will take about a day.");
                         Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
                     }
                 }
+
             }
             if (Function.Call<int>(Hash.GET_CLOCK_DAY_OF_WEEK) != day)
             {
+                
                 day = Function.Call<int>(Hash.GET_CLOCK_DAY_OF_WEEK);
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 if (day != dealer1ReloadDay && dealer1Reloaded)
@@ -3946,20 +3948,8 @@ namespace LSlife
 
         void MakeStreetSale(Customer c, bool inCar)
         {
-            var peds = World.GetNearbyPeds(playerPed.Position, 25);
-            foreach(Ped ped in peds)
-            {
-                if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
-                {
-                    UI.Notify("Police saw you");
-                    player.WantedLevel = 1;
-                    break;
-                    //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
-                    //{
-                        
-                    //}
-                }
-            }
+            
+            
             int price = 0;
             if (c.drug == "Weed") { price = 50; }
             if (c.drug == "Crack") { price = 200; }
@@ -3967,6 +3957,20 @@ namespace LSlife
             Ped p = c.Ped;                               
             if (inCar == false)
             {
+                var peds = World.GetNearbyPeds(playerPed.Position, 30);
+                foreach (Ped ped in peds)
+                {
+                    if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
+                    {
+                        UI.Notify("Police saw you");
+                        player.WantedLevel = 1;
+                        break;
+                        //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
+                        //{
+
+                        //}
+                    }
+                }
                 playerPed.Task.TurnTo(p);
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_HOWS_IT_GOING", "SPEECH_PARAMS_STANDARD");                
                 Wait(1000);
@@ -4010,6 +4014,44 @@ namespace LSlife
             }
             else
             {
+                if(playerPed.CurrentVehicle.Model.IsCar)
+                {
+                    var peds = World.GetNearbyPeds(playerPed.Position, 20);
+                    foreach (Ped ped in peds)
+                    {
+                        if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
+                        {
+                            UI.Notify("Police saw you");
+                            player.WantedLevel = 1;
+                            break;
+                            //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
+                            //{
+
+                            //}
+                        }
+                    }
+                }
+                else
+                {
+                    if (playerPed.CurrentVehicle.Model.IsCar)
+                    {
+                        var peds = World.GetNearbyPeds(playerPed.Position, 25);
+                        foreach (Ped ped in peds)
+                        {
+                            if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
+                            {
+                                UI.Notify("Police saw you");
+                                player.WantedLevel = 1;
+                                break;
+                                //if (Function.Call<bool>(Hash._0x6CD5A433374D4CFB, ped.Handle, playerPed.Handle))
+                                //{
+
+                                //}
+                            }
+                        }
+                    }
+                }
+                
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_HOWS_IT_GOING", "SPEECH_PARAMS_STANDARD");
                 Wait(1000);
                 p.Task.PlayAnimation("switch@franklin@002110_04_magd_3_weed_exchange", "002110_04_magd_3_weed_exchange_franklin", 8.0f, 3000, AnimationFlags.UpperBodyOnly);
