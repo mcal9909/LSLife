@@ -240,20 +240,14 @@ namespace LSlife
         List<XElement> playerWeapons = new List<XElement>();
         bool playerHasBag = false;
 
-
+        bool drugCarDestroyed = true;
+        bool drugCarSaved = true;
         Blip drugCarBlip = null;
-        string drugCarModel;
-        Vector3 drugCarPos;
-        float drugCarPosX;
-        float drugCarPosY;
-        float drugCarPosZ;
-        float drugCarHead;
         int drugCarWeed;
         int drugCarCrack;
         int drugCarCocain;
         int drugCarMoney;
-        int drugCarPriCol;
-        int drugCarSecCol;
+
         List<XElement> vehWeapons = new List<XElement>();
         List<dynamic> vehWeps = new List<dynamic>();
 
@@ -335,7 +329,7 @@ namespace LSlife
             iniSettings = ScriptSettings.Load("scripts\\LSlife.ini");                                    
             DEBUG = iniSettings.GetValue<bool>("OPTIONS", "DEBUG", false);
             LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-            
+
             foreach (XElement element in LSLifeSave.Descendants())
             {
                 if (element.Name == "playerInventory")
@@ -346,7 +340,7 @@ namespace LSlife
                         if (e.Name == "weed")
                         {
                             Int32.TryParse(e.Value, out number);
-                            PlayerInventory.Add("Weed", number);                            
+                            PlayerInventory.Add("Weed", number);
                         }
                         if (e.Name == "crack")
                         {
@@ -366,15 +360,15 @@ namespace LSlife
                     {
                         if (e.Name == "weed")
                         {
-                            Int32.TryParse(e.Value, out stashWeed);                            
+                            Int32.TryParse(e.Value, out stashWeed);
                         }
                         if (e.Name == "crack")
                         {
-                            Int32.TryParse(e.Value, out stashCrack);                             
+                            Int32.TryParse(e.Value, out stashCrack);
                         }
                         if (e.Name == "cocain")
                         {
-                            Int32.TryParse(e.Value, out stashCocain);                             
+                            Int32.TryParse(e.Value, out stashCocain);
                         }
                         if (e.Name == "money")
                         {
@@ -389,19 +383,19 @@ namespace LSlife
                     {
                         if (e.Name == "weed")
                         {
-                            Int32.TryParse(e.Value, out drugCarWeed);                             
+                            Int32.TryParse(e.Value, out drugCarWeed);
                         }
                         if (e.Name == "crack")
                         {
-                            Int32.TryParse(e.Value, out drugCarCrack);                             
+                            Int32.TryParse(e.Value, out drugCarCrack);
                         }
                         if (e.Name == "cocain")
                         {
-                            Int32.TryParse(e.Value, out drugCarCocain);                             
+                            Int32.TryParse(e.Value, out drugCarCocain);
                         }
                         if (e.Name == "money")
                         {
-                            Int32.TryParse(e.Value, out drugCarMoney);                             
+                            Int32.TryParse(e.Value, out drugCarMoney);
                         }
                     }
                 }
@@ -412,7 +406,7 @@ namespace LSlife
                         if (e.Name == "debt")
                         {
                             Int32.TryParse(e.Value, out dealer1Debt);
-                            if(dealer1Debt > 100000)
+                            if (dealer1Debt > 100000)
                             {
                                 dealer1Debt = 100000;
                                 dealer1Angry = true;
@@ -428,7 +422,7 @@ namespace LSlife
                         }
                         if (e.Name == "crack")
                         {
-                            Int32.TryParse(e.Value, out dealer1Crack);                           
+                            Int32.TryParse(e.Value, out dealer1Crack);
                         }
                         if (e.Name == "cocain")
                         {
@@ -452,52 +446,21 @@ namespace LSlife
                         }
                     }
                 }
-                if (element.Name == "drugCar")
+            }
+            XDocument VehicleXml = XDocument.Load("scripts\\LSLife\\Vehicles.xml");
+            foreach(XElement vehicles in VehicleXml.Descendants())
+            {
+                if (vehicles.Name == "Vehicle")
                 {
-                    foreach(XElement e in element.Elements())
+                    foreach(XElement e in vehicles.Elements())
                     {
-                        if (e.Name == "HASH")
+                        if(e.Name == "Destroyed")
                         {
-                            if (e.Value != "")
-                            {
-                                
-                                drugCarModel = e.Value;
-                            }
-                            else
-                            {
-                                drugCarModel = "";
-                            }
-                            
-                        }
-                        if (e.Name == "POSX")
-                        {
-                            float.TryParse(e.Value, out drugCarPosX);
-                        }
-                        if (e.Name == "POSY")
-                        {
-                            float.TryParse(e.Value, out drugCarPosY);
-                        }
-                        if (e.Name == "POSZ")
-                        {
-                            float.TryParse(e.Value, out drugCarPosZ);
-                        }
-                        if (e.Name == "HEAD")
-                        {
-                            float.TryParse(e.Value, out drugCarHead);
-                        }
-                        if (e.Name == "PCOL")
-                        {
-                            Int32.TryParse(e.Value, out drugCarPriCol);
-                        }
-                        if (e.Name == "SCOL")
-                        {
-                            Int32.TryParse(e.Value, out drugCarSecCol);
+                            bool.TryParse(e.Value, out drugCarDestroyed);
                         }
                     }
                 }
             }
-            drugCarPos = new Vector3(drugCarPosX, drugCarPosY, drugCarPosZ);
-
             string keysMainMenu = iniSettings.GetValue("KEYS", "MAIN", "F10");
             Enum.TryParse(keysMainMenu, out Keys mainMenuKey);
             MenuKey = mainMenuKey;
@@ -2063,7 +2026,7 @@ namespace LSlife
                     timerBarPool.Draw();
                 }
                 // 300ms delay
-                if (Game.GameTime > dayUpdateTimer + 300)
+                if (Game.GameTime > dayUpdateTimer + 350)
                 {
                     playerGroup = playerPed.CurrentPedGroup;
                     dayUpdateTimer = Game.GameTime;
@@ -2292,12 +2255,12 @@ namespace LSlife
                     }
                     if (playerPed != null && playerPed.IsAlive && player.IsPlaying)
                     {
-                        //if (Game.Player != player)
-                        //{
-                        //    player = Game.Player;
-                        //    playerPed = Game.Player.Character;
-                        //    UI.Notify("LS Life: Player Character changed");
-                        //}
+                        if (Game.Player != player)
+                        {
+                            player = Game.Player;
+                            playerPed = Game.Player.Character;
+                            UI.Notify("LS Life: Player Character changed");
+                        }
                             
                         if (attacker != null)
                         {
@@ -2323,24 +2286,64 @@ namespace LSlife
                                 }
                             }
                         }
-                        if (drugCarModel != "" && drugCar == null && playerPed.Position.DistanceTo(drugCarPos) <= 200)
-                        {                            
-                            if (drugCarBlip != null)
+                        Vector3 vehPos = Vector3.Zero;
+                        XDocument VehicleXml = XDocument.Load("scripts\\LSLife\\Vehicles.xml");
+                        int handle = 0;
+                        foreach (XElement v in VehicleXml.Descendants())
+                        {
+                            if (v.Name == "Vehicle")
                             {
-                                drugCarBlip.Remove();
-                                drugCarBlip = null;
+                                foreach (XElement vEl in v.Elements())
+                                {
+                                    if (vEl.Name == "PosX") { float.TryParse(vEl.Value, out vehPos.X); }
+                                    if (vEl.Name == "PosY") { float.TryParse(vEl.Value, out vehPos.Y); }
+                                    if (vEl.Name == "PosZ") { float.TryParse(vEl.Value, out vehPos.Z); }
+                                    if (vEl.Name == "Handle") { Int32.TryParse(vEl.Value, out handle); }
+                                }
                             }
-                            //Enum.TryParse<Model>(drugCarModel, out Model model);
-                            drugCar = World.CreateVehicle(new Model(drugCarModel), drugCarPos, drugCarHead);
-                            //UI.Notify("" + drugCarModel + " | " + drugCarPos + " | " + playerPed.Position);
-                            drugCar.IsPersistent = true;
-                            drugCar.AddBlip();
-                            drugCar.CurrentBlip.IsShortRange = true;
-                            drugCar.CurrentBlip.IsFriendly = true;
-                            drugCar.CurrentBlip.Sprite = BlipSprite.PersonalVehicleCar;
-                            drugCar.CurrentBlip.Name = "Drug Car";
-                            drugCar.CurrentBlip.Color = BlipColor.Green;
-                            Function.Call(Hash.SET_VEHICLE_COLOURS, drugCar, drugCarPriCol, drugCarSecCol);
+                        }
+                        if (drugCarDestroyed == false && drugCar == null)
+                        {
+                            
+                            if (playerPed.Position.DistanceTo(vehPos) <= 200)
+                            {
+                                if (drugCarBlip != null)
+                                {
+                                    drugCarBlip.Remove();
+                                    drugCarBlip = null;
+                                }
+                                //Enum.TryParse<Model>(drugCarModel, out Model model);
+
+
+
+                                var vehicles = World.GetAllVehicles();
+                                foreach (Vehicle veh in vehicles)
+                                {
+                                    //UI.Notify("" + handle);
+                                    if (veh.Handle == handle)
+                                    {
+                                        if (veh.CurrentBlip != null)
+                                        {
+                                            veh.CurrentBlip.Remove();
+                                        }
+                                        drugCar = veh;
+                                        drugCar.IsPersistent = true;
+                                        drugCar.AddBlip();
+                                        drugCar.CurrentBlip.IsShortRange = true;
+                                        drugCar.CurrentBlip.IsFriendly = true;
+                                        drugCar.CurrentBlip.Sprite = BlipSprite.PersonalVehicleCar;
+                                        drugCar.CurrentBlip.Name = "Drug Car";
+                                        drugCar.CurrentBlip.Color = BlipColor.Green;
+                                    }
+                                }
+                                if (drugCar == null)
+                                {
+                                    VehicleLoad();
+                                }
+                            }
+                            
+                                                    
+                            //Function.Call(Hash.SET_VEHICLE_COLOURS, drugCar, drugCarPriCol, drugCarSecCol);
                         }
                         if (drugCar != null)
                         {
@@ -2371,46 +2374,20 @@ namespace LSlife
                                         drugCarWanted = true;
                                         UI.Notify("Your storage vehicle has been identified.");
                                     }
+                                    if (drugCarSaved == true && drugCar.Driver == playerPed)
+                                    {
+                                        drugCarSaved = false;
+                                    }
                                 }
                                 if (!playerWanted && drugCarWanted)
                                 {
                                     drugCarWanted = false;
                                     UI.Notify("Police are not longer after your storage vehicle.");
                                 }
-                                if (drugCarPos != drugCar.Position && !playerPed.IsInVehicle())
+                                if (drugCarSaved == false && vehPos != drugCar.Position && !playerPed.IsInVehicle())
                                 {
-                                    drugCarPos = drugCar.Position;
-                                    drugCarPosX = drugCar.Position.X;
-                                    drugCarPosY = drugCar.Position.Y;
-                                    drugCarPosZ = drugCar.Position.Z;
-                                    LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                                    foreach (XElement element in LSLifeSave.Descendants())
-                                    {
-                                        if (element.Name == "drugCar")
-                                        {
-                                            foreach (XElement drugCarEle in element.Elements())
-                                            {
-                                                if (drugCarEle.Name == "POSX")
-                                                {
-                                                    drugCarEle.Value = drugCarPosX.ToString();
-                                                }
-                                                if (drugCarEle.Name == "POSY")
-                                                {
-                                                    drugCarEle.Value = drugCarPos.Y.ToString();
-                                                }
-                                                if (drugCarEle.Name == "POSZ")
-                                                {
-                                                    drugCarEle.Value = drugCarPos.Z.ToString();
-                                                }
-                                                if (drugCarEle.Name == "HEAD")
-                                                {
-                                                    drugCarEle.Value = drugCar.Heading.ToString();
-                                                }
-                                            }
-                                        }
-                                    }
-                                    LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                                    //UI.Notify("new position.");
+                                    VehicleSave(drugCar);
+                                    drugCarSaved = true;
                                 }
                                 if (drugCar.IsDead)
                                 {
@@ -2419,20 +2396,10 @@ namespace LSlife
                                     drugCar.MarkAsNoLongerNeeded();
                                     drugCar.CurrentBlip.Remove();
                                     drugCar = null;
-                                    drugCarModel = "";
+                                    drugCarDestroyed = true;
                                     LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                                     foreach (XElement element in LSLifeSave.Descendants())
                                     {
-                                        if (element.Name == "drugCar")
-                                        {
-                                            foreach (XElement drugCarEle in element.Elements())
-                                            {
-                                                if (drugCarEle.Name == "HASH")
-                                                {
-                                                    drugCarEle.Value = "";
-                                                }
-                                            }
-                                        }
                                         if (element.Name == "drugCarStash")
                                         {
                                             foreach (XElement carStashEle in element.Elements())
@@ -2457,6 +2424,15 @@ namespace LSlife
                                         }
                                     }
                                     LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+                                    XDocument veh = XDocument.Load("scripts\\LSLife\\Vehicles.xml");
+                                    foreach(XElement element in veh.Descendants())
+                                    {
+                                        if(element.Name == "Destroyed")
+                                        {
+                                            element.Value = drugCarDestroyed.ToString();
+                                        }
+                                    }
+                                    veh.Save("scripts\\LSLife\\Vehicles.xml");
                                 }
                             }
                         }
@@ -2477,13 +2453,13 @@ namespace LSlife
                         if (playerWanted && player.WantedLevel == 0) { playerWanted = false; }
 
 
-                        if (drugCarModel != "" && drugCar != null && playerPed.Position.DistanceTo(drugCarPos) > 200)
+                        if (drugCarDestroyed == false && drugCar != null && playerPed.Position.DistanceTo(vehPos) > 200)
                         {
                             if (drugCar.Exists())
                             {
                                 if (playerPed.IsInVehicle() && playerPed.CurrentVehicle != drugCar)
                                 {
-                                    drugCarBlip = World.CreateBlip(drugCarPos);
+                                    drugCarBlip = World.CreateBlip(drugCar.Position);
                                     drugCarBlip.IsShortRange = true;
                                     drugCarBlip.IsFriendly = true;
                                     drugCarBlip.Sprite = BlipSprite.PersonalVehicleCar;
@@ -2495,7 +2471,7 @@ namespace LSlife
                                 }
                                 if (!playerPed.IsInVehicle())
                                 {
-                                    drugCarBlip = World.CreateBlip(drugCarPos);
+                                    drugCarBlip = World.CreateBlip(vehPos);
                                     drugCarBlip.IsShortRange = true;
                                     drugCarBlip.IsFriendly = true;
                                     drugCarBlip.Sprite = BlipSprite.PersonalVehicleCar;
@@ -2509,9 +2485,9 @@ namespace LSlife
                             
 
                         }
-                        if (drugCarModel != "" && drugCar == null && drugCarBlip == null)
+                        if (drugCarDestroyed == false && drugCar == null && drugCarBlip == null)
                         {
-                            drugCarBlip = World.CreateBlip(drugCarPos);
+                            drugCarBlip = World.CreateBlip(vehPos);
                             drugCarBlip.IsShortRange = true;
                             drugCarBlip.IsFriendly = true;
                             drugCarBlip.Sprite = BlipSprite.PersonalVehicleCar;
@@ -2979,7 +2955,7 @@ namespace LSlife
                             }
                         }
                         //select ped for deal
-                        if (customers.Count < 5 && jobs.Count == 0)
+                        if (customers.Count < 5)
                         {
                             if (Game.GameTime > lastTimePedSelected + 5000)
                             {
@@ -2995,8 +2971,8 @@ namespace LSlife
                                         {
                                             float dist = p.Position.DistanceTo(playerPos);
                                             //Ped is within 30m and its heading the player's way
-                                            if (dist < 50f && (p.Position + p.Velocity).DistanceTo(playerPos) < dist)
-                                            
+                                            //if (dist < 50f && (p.Position + p.Velocity).DistanceTo(playerPos) < dist)
+                                            if (dist < 40f)
                                             {
                                                 //None of the current Customers has the same Handle as this ped
                                                 //So this ped is not a registered customer
@@ -3018,8 +2994,7 @@ namespace LSlife
                                                                 {
                                                                     customers.Add(new Customer(p, playerPos, wealth, false, null));
                                                                     break;
-                                                                }
-                                                                
+                                                                }                                                                
                                                             }                                                            
                                                         }
                                                     }
@@ -3033,7 +3008,7 @@ namespace LSlife
                         //do the deal
                         if (customers.Count > 0)
                         {
-                            if (Game.GameTime > lastCustomerCheckTimer + 250)
+                            if (Game.GameTime > lastCustomerCheckTimer + 370)
                             {                                
                                 foreach (Customer c in customers)
                                 {
@@ -3051,18 +3026,17 @@ namespace LSlife
                                             {
                                                 if (c.Ped.IsInVehicle())
                                                 {
-                                                    MoveCustomer(c, playerPed.Position);
+                                                    c.Ped.Task.PerformSequence(PerformTaskSeq(2, c.Ped.CurrentVehicle));                                                    
                                                     lastCustomerCheckTimer = Game.GameTime;
-                                                    break;
                                                 }
                                                 else
                                                 {
                                                     if (c.Target != playerPed.Position)
                                                     {
                                                         c.Target = playerPed.Position;
-                                                        c.Ped.Task.PerformSequence(PerformTaskSeq(2, c.Ped.CurrentVehicle));
+                                                        MoveCustomer(c, c.Target);
+                                                        //c.Ped.Task.PerformSequence(PerformTaskSeq(2, c.Ped.CurrentVehicle));
                                                         lastCustomerCheckTimer = Game.GameTime;
-                                                        break;
                                                     }
                                                 }
                                             }
@@ -3271,7 +3245,239 @@ namespace LSlife
                 }
             }            
         }
+
+        void VehicleSave(Vehicle veh)
+        {
+            //Enum.TryParse(veh.Model.ToString(), out VehicleHash hash);
+            //UI.Notify("" + veh.Model.ToString() + " | " + hash + " | " + veh.Model.Hash);
+            if (veh.Model.IsCar)
+            {
+                XDocument vehiclesXML = XDocument.Load("scripts\\LSLife\\Vehicles.xml");
+                
+                var rootElement = vehiclesXML.Root;
+                rootElement.RemoveAll();
+                var parentElement = new XElement("Vehicle");
+                var modsElement = new XElement("Mods");
+                var toggleModsElement = new XElement("ToggleMods");
+                var neonsElement = new XElement("Neons");
+                parentElement.Add(new XElement("Destroyed", "false"));
+                parentElement.Add(new XElement("Handle", veh.Handle.ToString()));
+                parentElement.Add(new XElement("Name", veh.DisplayName));
+                parentElement.Add(new XElement("PosX", veh.Position.X));
+                parentElement.Add(new XElement("PosY", veh.Position.Y));
+                parentElement.Add(new XElement("PosZ", veh.Position.Z));
+                parentElement.Add(new XElement("Heading", veh.Heading));
+                parentElement.Add(new XElement("PrimaryCol", veh.PrimaryColor));
+                parentElement.Add(new XElement("SecondaryCol", veh.SecondaryColor));
+                parentElement.Add(new XElement("Health", veh.BodyHealth));
+                parentElement.Add(new XElement("EngineHealth", veh.EngineHealth));
+                parentElement.Add(new XElement("WheelType", veh.WheelType));
+                parentElement.Add(new XElement("RimCol", veh.RimColor));
+                parentElement.Add(new XElement("SmokeCol", veh.TireSmokeColor));
+                parentElement.Add(new XElement("NeonCol", veh.NeonLightsColor));
+                parentElement.Add(new XElement("TrimCol", veh.TrimColor));
+                parentElement.Add(new XElement("DashCol", veh.DashboardColor));
+                parentElement.Add(new XElement("NumPlateType", veh.NumberPlateType));
+                parentElement.Add(new XElement("NumPlate", veh.NumberPlate));
+                parentElement.Add(new XElement("WindowTint", veh.WindowTint));
+                parentElement.Add(new XElement("DirtLevel", veh.DirtLevel));
+                parentElement.Add(new XElement("CanTiresBurst", veh.CanTiresBurst));
+                parentElement.Add(new XElement("Fuel", veh.FuelLevel));
+                if (Function.Call<bool>(Hash.GET_VEHICLE_MOD_VARIATION, veh.Handle, (int)VehicleMod.FrontWheels))
+                {
+                    parentElement.Add(new XElement("CustomTire", true));
+                }
+                else
+                {
+                    parentElement.Add(new XElement("CustomTire", false));
+                }
+                foreach (VehicleMod mod in Enum.GetValues(typeof(VehicleMod)))
+                {
+                    modsElement.Add(new XElement(mod.ToString(), veh.GetMod(mod)));
+                }
+                foreach (VehicleToggleMod mod in Enum.GetValues(typeof(VehicleToggleMod)))
+                {
+                    toggleModsElement.Add(new XElement(mod.ToString(), veh.IsToggleModOn(mod)));
+                }
+                foreach (VehicleNeonLight neon in Enum.GetValues(typeof(VehicleNeonLight)))
+                {
+                    neonsElement.Add(new XElement(neon.ToString(), veh.IsNeonLightsOn(neon)));
+                }
+                parentElement.Add(modsElement);
+                parentElement.Add(toggleModsElement);
+                parentElement.Add(neonsElement);
+                rootElement.Add(parentElement);
+                vehiclesXML.Save("scripts\\LSLife\\Vehicles.xml");
+                drugCar = veh;
+                drugCar.IsPersistent = true;
+                if (drugCar.CurrentBlip != null)
+                {
+                    drugCar.CurrentBlip.Remove();
+                }                
+                drugCar.AddBlip();
+                drugCar.CurrentBlip.IsShortRange = true;
+                drugCar.CurrentBlip.IsFriendly = true;
+                drugCar.CurrentBlip.Sprite = BlipSprite.PersonalVehicleCar;
+                drugCar.CurrentBlip.Name = "Drug Car";
+                drugCar.CurrentBlip.Color = BlipColor.Green;
+                Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
+                UI.Notify("Storage car set.");
+            }
+        }
         
+        void VehicleLoad()
+        {
+            string drugCarModel = "";
+            Vector3 drugCarPos = Vector3.Zero;
+            float drugCarHead = 0;
+            VehicleColor drugCarPriCol = VehicleColor.Blue;
+            VehicleColor drugCarSecCol = VehicleColor.Blue;
+            int health = 0;
+            int engineHealth = 0;
+            VehicleWheelType wheelType = VehicleWheelType.Tuner;
+            VehicleColor rimCol = VehicleColor.BrushedSteel;
+            bool canTiresBurst = false;
+            NumberPlateType plateType = NumberPlateType.BlueOnWhite1;
+            string plate = "";
+            VehicleWindowTint tint = VehicleWindowTint.None;
+            float dirt = 0;
+            float fuel = 0;
+            bool customTire = false;
+            int modInt = -1;
+
+            XDocument vehiclesXML = XDocument.Load("scripts\\LSLife\\Vehicles.xml");
+
+            foreach (XElement veh in vehiclesXML.Descendants())
+            {
+                if (veh.Name == "Vehicle")
+                {
+                    foreach (XElement e in veh.Elements())
+                    {
+                        if (e.Name == "Name")
+                        {
+                            drugCarModel = e.Value;
+                        }
+                        if (e.Name == "PosX")
+                        {
+                            float.TryParse(e.Value, out drugCarPos.X);
+                        }
+                        if (e.Name == "PosY")
+                        {
+                            float.TryParse(e.Value, out drugCarPos.Y);
+                        }
+                        if (e.Name == "PosZ")
+                        {
+                            float.TryParse(e.Value, out drugCarPos.Z);
+                        }
+                        if (e.Name == "Heading")
+                        {
+                            float.TryParse(e.Value, out drugCarHead);
+                        }
+                        if (e.Name == "PrimaryCol")
+                        {
+                            Enum.TryParse<VehicleColor>(e.Value, out drugCarPriCol);
+                        }
+                        if (e.Name == "SecondaryCol")
+                        {
+                            Enum.TryParse<VehicleColor>(e.Value, out drugCarSecCol);
+                        }
+                        if (e.Name == "Health")
+                        {
+                            Int32.TryParse(e.Value, out health);
+                        }
+                        if (e.Name == "EngineHealth")
+                        {
+                            Int32.TryParse(e.Value, out engineHealth);
+                        }
+                        if (e.Name == "WheelType")
+                        {
+                            Enum.TryParse<VehicleWheelType>(e.Value, out wheelType);
+                        }
+                        if (e.Name == "RimCol")
+                        {
+                            Enum.TryParse<VehicleColor>(e.Value, out rimCol);
+                        }
+                        if (e.Name == "NumPlateType")
+                        {
+                            Enum.TryParse<NumberPlateType>(e.Value, out plateType);
+                        }
+                        if (e.Name == "NumPlate")
+                        {
+                            plate = e.Value;
+                        }
+                        if (e.Name == "WindowTint")
+                        {
+                            Enum.TryParse<VehicleWindowTint>(e.Value, out tint);
+                        }
+                        if (e.Name == "DirtLevel")
+                        {
+                            float.TryParse(e.Value, out dirt);
+                        }
+                        if (e.Name == "CanTiresBurst")
+                        {
+                            bool.TryParse(e.Value, out canTiresBurst);
+                        }
+                        if (e.Name == "Fuel")
+                        {
+                            float.TryParse(e.Value, out fuel);
+                        }
+                        if (e.Name == "CustomTire")
+                        {
+                            bool.TryParse(e.Value, out customTire);
+                        }
+                    }
+                }
+            }
+            if (drugCarModel != "")
+            {
+                drugCar = World.CreateVehicle(new Model(drugCarModel), drugCarPos, drugCarHead);
+                //UI.Notify("" + drugCarModel + " | " + drugCarPos + " | " + playerPed.Position);
+                drugCar.PrimaryColor = drugCarPriCol;
+                drugCar.SecondaryColor = drugCarSecCol;
+                drugCar.Health = health;
+                drugCar.EngineHealth = engineHealth;
+                drugCar.WheelType = wheelType;                
+                drugCar.CanTiresBurst = canTiresBurst;
+                drugCar.NumberPlateType = plateType;
+                drugCar.NumberPlate = plate;
+                drugCar.WindowTint = tint;
+                drugCar.DirtLevel = dirt;
+                drugCar.FuelLevel = fuel;
+                drugCar.IsPersistent = true;
+                drugCar.AddBlip();
+                drugCar.CurrentBlip.IsShortRange = true;
+                drugCar.CurrentBlip.IsFriendly = true;
+                drugCar.CurrentBlip.Sprite = BlipSprite.PersonalVehicleCar;
+                drugCar.CurrentBlip.Name = "Drug Car";
+                drugCar.CurrentBlip.Color = BlipColor.Green;
+
+                foreach (XElement veh in vehiclesXML.Descendants())
+                {
+                    if (veh.Name == "Mods")
+                    {
+                        foreach (XElement m in veh.Elements())
+                        {
+                            Enum.TryParse<VehicleMod>(m.Name.ToString(), out VehicleMod mod);
+                            Int32.TryParse(m.Value, out int val);
+                            drugCar.SetMod(mod, val, false);
+                            UI.Notify("Set " + mod + " to " + val);
+
+                        }
+                    }
+                    drugCar.RimColor = rimCol;
+                    if (veh.Name == "ToggleMods")
+                    {
+                        foreach (XElement t in veh.Elements())
+                        {
+                            Enum.TryParse<VehicleToggleMod>(t.Name.ToString(), out VehicleToggleMod toggleMod);
+                            bool.TryParse(t.Value, out bool toggle);
+                            drugCar.ToggleMod(toggleMod, toggle);
+                        }
+                    }
+                }
+            }
+                                   
+        }
 
         void onKeyDown(object sender, KeyEventArgs e)
         {
@@ -3279,67 +3485,20 @@ namespace LSlife
             {
                 if (playerPed.IsInVehicle())
                 {
-                    Enum.TryParse(playerPed.CurrentVehicle.Model.ToString(), out VehicleHash hash);
-                    UI.Notify(""+ playerPed.CurrentVehicle.Model.ToString() +" | "+ hash +" | "+ playerPed.CurrentVehicle.Model.Hash);
-                    if (playerPed.CurrentVehicle.Model.IsCar)
+                    if (drugCar != null)
                     {
-                        drugCar = playerPed.CurrentVehicle;
-                        drugCarModel = drugCar.DisplayName;
-                        drugCarPos = drugCar.Position;
-                        drugCarHead = drugCar.Heading;
-                        drugCar.IsPersistent = true;
-                        drugCar.AddBlip();
-                        drugCar.CurrentBlip.IsShortRange = true;
-                        drugCar.CurrentBlip.IsFriendly = true;
-                        drugCar.CurrentBlip.Sprite = BlipSprite.PersonalVehicleCar;
-                        drugCar.CurrentBlip.Name = "Drug Car";
-                        drugCar.CurrentBlip.Color = BlipColor.Green;
-                        LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                        foreach (XElement element in LSLifeSave.Descendants())
+                        if (drugCarBlip != null)
                         {
-                            if (element.Name == "drugCar")
-                            {
-                                foreach (XElement drugCarEle in element.Elements())
-                                {
-                                    if (drugCarEle.Name == "HASH")
-                                    {
-                                        drugCarEle.Value = drugCarModel;
-                                    }
-                                    if (drugCarEle.Name == "POSX")
-                                    {
-                                        drugCarEle.Value = drugCarPos.X.ToString();
-                                    }
-                                    if (drugCarEle.Name == "POSY")
-                                    {
-                                        drugCarEle.Value = drugCarPos.Y.ToString();
-                                    }
-                                    if (drugCarEle.Name == "POSZ")
-                                    {
-                                        drugCarEle.Value = drugCarPos.Z.ToString();
-                                    }
-                                    if (drugCarEle.Name == "HEAD")
-                                    {
-                                        drugCarEle.Value = drugCar.Heading.ToString();
-                                    }
-                                    if (drugCarEle.Name == "PCOL")
-                                    {
-                                        int pcol = (int)drugCar.PrimaryColor;
-                                        drugCarEle.Value = pcol.ToString();
-                                    }
-                                    if (drugCarEle.Name == "SCOL")
-                                    {
-                                        int scol = (int)drugCar.PrimaryColor;
-                                        drugCarEle.Value = scol.ToString();
-                                    }
-                                }
-                            }
+                            drugCarBlip.Remove();
                         }
-                        LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-
-
-                        Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
-                        UI.Notify("Storage car set.");
+                        drugCar.IsPersistent = false;
+                        drugCar.MarkAsNoLongerNeeded();
+                        if (drugCar.CurrentBlip != null)
+                        {
+                            drugCar.CurrentBlip.Remove();
+                        }
                     }
+                    VehicleSave(playerPed.CurrentVehicle);   
                 }
                 if (!playerPed.IsInVehicle())
                 {
@@ -3449,7 +3608,7 @@ namespace LSlife
                 {
                     //DisplayHelpText("You have " + TotalDrugsCarried + "g total.");
                     Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
-                    UI.Notify("Debt $" + dealer1Debt + ", Totaldrugs:" + TotalDrugsCarried + "g, Dealing:" + isDealing);
+                    //UI.Notify("Debt $" + dealer1Debt + ", Totaldrugs:" + TotalDrugsCarried + "g, Dealing:" + isDealing);
                     UI.Notify("Weed " + PlayerInventory["Weed"] + "g, Crack " + PlayerInventory["Crack"] + "g, Coke " + PlayerInventory["Cocain"] + "g.");
                     //UI.Notify(""+playerPed.Position);
                     //Function.Call(Hash.SET_STATE_OF_CLOSEST_DOOR_OF_TYPE, 1417775309, )
@@ -3980,7 +4139,7 @@ namespace LSlife
                 TaskSequence driveToPlayerAndExit = new TaskSequence();
                 driveToPlayerAndExit.AddTask.DriveTo(vehicle, Game.Player.Character.Position, 10f, 20f, (int)DrivingStyle.Normal);
                 driveToPlayerAndExit.AddTask.GoTo(Game.Player.Character.Position);
-                return driveToPlayerAndExit;
+                return driveToPlayerAndExit;                
             }            
             else
             {
@@ -3992,7 +4151,7 @@ namespace LSlife
         {
             if (c.Target == target)
             {
-                return;
+                c.Ped.Task.GoTo(c.Target);
             }
             else
             {
@@ -4298,7 +4457,7 @@ namespace LSlife
                 int extraMoney = rnd.Next(0, 500);
                 Ped.Money = (amount * price) + extraMoney;
                 if (!FarAway && vehicle == null) { Ped.Task.GoTo(target); }
-                if (!FarAway && vehicle != null) { PerformTaskSeq(2, vehicle); }
+                //if (!FarAway && vehicle != null) { PerformTaskSeq(2, vehicle); }
             }
             public Vector3 Target { get => target; set => target = value; }
             public Ped Ped { get => ped; set => ped = value; }
