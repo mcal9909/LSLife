@@ -126,8 +126,11 @@ namespace LSlife
                     if (!Game.Player.Character.Weapons.HasWeapon(weaponHash))
                     {
                         Game.Player.Money -= total;
+                        dealer1Money += total;
                         dealer1Rep += total / 100;
                         Game.Player.Character.Weapons.Give(weaponHash, 0, true, true);
+                        UpdateSave();
+
                     }
                 }
                 else
@@ -139,6 +142,7 @@ namespace LSlife
                         dealer1Debt -= total;
                         dealer1Rep += total / 100;
                         Game.Player.Character.Weapons.Give(weaponHash, 0, true, true);
+                        UpdateSave();
                     }
                 }
             }
@@ -152,8 +156,10 @@ namespace LSlife
                         if (Game.Player.Money >= total)
                         {
                             Game.Player.Money -= total;
+                            dealer1Money += total;
                             dealer1Rep += total / 100;
                             Game.Player.Character.Weapons.Current.Ammo += 50;
+                            UpdateSave();
                         }
                         else
                         {
@@ -161,6 +167,7 @@ namespace LSlife
                             {
                                 dealer1Debt += total;
                                 Game.Player.Character.Weapons.Current.Ammo += 50;
+                                UpdateSave();
                             }
                         }
                     }
@@ -172,8 +179,10 @@ namespace LSlife
                             if (Game.Player.Money >= total)
                             {
                                 Game.Player.Money -= total;
+                                dealer1Money += total;
                                 dealer1Rep += total / 100;
                                 Game.Player.Character.Weapons.Current.Ammo += 50;
+                                UpdateSave();
                             }
                             else
                             {
@@ -181,6 +190,7 @@ namespace LSlife
                                 {
                                     dealer1Debt += total;
                                     Game.Player.Character.Weapons.Current.Ammo += 50;
+                                    UpdateSave();
                                 }
                             }
                         }
@@ -191,8 +201,10 @@ namespace LSlife
                             if (Game.Player.Money >= total)
                             {
                                 Game.Player.Money -= total;
+                                dealer1Money += total;
                                 dealer1Rep += total / 100;
                                 Game.Player.Character.Weapons.Current.Ammo += 50;
+                                UpdateSave();
                             }
                             else
                             {
@@ -200,19 +212,21 @@ namespace LSlife
                                 {
                                     dealer1Debt += total;
                                     Game.Player.Character.Weapons.Current.Ammo += 50;
+                                    UpdateSave();
                                 }
                             }
                         }
                         else
                         if (Game.Player.Character.Weapons.HasWeapon(WeaponHash.HeavyPistol))
                         {
-                            Game.Player.Character.Weapons.Select(WeaponHash.HeavyPistol
-);
+                            Game.Player.Character.Weapons.Select(WeaponHash.HeavyPistol);
                             if (Game.Player.Money >= total)
                             {
                                 Game.Player.Money -= total;
+                                dealer1Money += total;
                                 dealer1Rep += total / 100;
                                 Game.Player.Character.Weapons.Current.Ammo += 50;
+                                UpdateSave();
                             }
                             else
                             {
@@ -220,6 +234,7 @@ namespace LSlife
                                 {
                                     dealer1Debt += total;
                                     Game.Player.Character.Weapons.Current.Ammo += 50;
+                                    UpdateSave();
                                 }
                             }
                         }
@@ -232,8 +247,10 @@ namespace LSlife
                     if (!Game.Player.Character.Weapons.HasWeapon(weaponHash))
                     {
                         Game.Player.Money -= total;
+                        dealer1Money += total;
                         dealer1Rep += total / 100;
                         Game.Player.Character.Weapons.Give(weaponHash, 100, true, true);
+                        UpdateSave();
                     }
                 }
                 else
@@ -244,6 +261,7 @@ namespace LSlife
                     {
                         dealer1Debt += total;
                         Game.Player.Character.Weapons.Give(weaponHash, 100, true, true);
+                        UpdateSave();
                     }
                 }
             }
@@ -253,8 +271,10 @@ namespace LSlife
                 if (Game.Player.Money >= total)
                 {
                     Game.Player.Money -= total;
+                    dealer1Money += total;
                     dealer1Rep += total / 100;
                     Game.Player.Character.Armor = 200;
+                    UpdateSave();
                 }
                 else
                 if (dealer1Debt < 100000 && dealer1Debt + total < 100000)
@@ -262,6 +282,7 @@ namespace LSlife
                     dealer1Debt -= total;
                     dealer1Rep += total / 100;
                     Game.Player.Character.Armor = 200;
+                    UpdateSave();
                 }
             }
             if (item == dismiss)

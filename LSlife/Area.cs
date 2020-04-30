@@ -68,7 +68,7 @@ namespace LSlife
                         }
                         if (drug.AreaType == AreaType.Normal)
                         {
-                            drug.Demand = 0.5f + f;
+                            drug.Demand = 0.7f + f;
                         }
                         if (drug.AreaType == AreaType.Rich)
                         {
@@ -79,15 +79,15 @@ namespace LSlife
                     case AreaType.Normal:
                         if (drug.AreaType == AreaType.Poor)
                         {
-                            drug.Demand = 0.2f + f;
+                            drug.Demand = 0.5f + f;
                         }
                         if (drug.AreaType == AreaType.Normal)
                         {
-                            drug.Demand = 0.8f + f;
+                            drug.Demand = 1f + f;
                         }
                         if (drug.AreaType == AreaType.Rich)
                         {
-                            drug.Demand = 0.3f + f;
+                            drug.Demand = 0.5f + f;
                         }
                         drug.Delay = 10000;
                         break;
@@ -98,7 +98,7 @@ namespace LSlife
                         }
                         if (drug.AreaType == AreaType.Normal)
                         {
-                            drug.Demand = 0.5f + f;
+                            drug.Demand = 0.7f + f;
                         }
                         if (drug.AreaType == AreaType.Rich)
                         {

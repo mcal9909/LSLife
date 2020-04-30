@@ -945,19 +945,14 @@ namespace LSlife
                 }
                 if (DEBUG)
                 {
-                    int time = -1000;
-                    Area area = areas[areaIndex];
-                    if(aDealer != null)
-                    {
-                        if(aDealer.cTimer != null)
-                        {                            
-                            time = aDealer.cTimer.Elapsed();
-                            myUIText = new UIText(time.ToString() + " fin:"+aDealer.cTimer.Finished() , new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
-                            myUIText.Draw();
-                        }
-                    }
-                    //string debugData = "Areas: "+areas.Count+" aName:" + area.Name + " aHeat:" + area.Heat + "% aPolice:" + area.CopPresance + " aGang:" + area.GangPresance+"/"+area.Dealers + " RChance:"+ratChance+ "% aDrug:"+area.Drugs[0].Demand/area.Dealers+"/"+area.Drugs[0].Delay / (area.Drugs[0].Demand/area.Dealers) + "ms DemandNotMet"+area.DemandNotMet;                                        
+                    string str = "reDay " + dealer1ReloadDay + " Day " + day + " reloadOrdered " + dealer1ReloadOrder;
+                    myUIText = new UIText(str, new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
+                    myUIText.Draw();
+
                 }
+                    
+                    //string debugData = "Areas: "+areas.Count+" aName:" + area.Name + " aHeat:" + area.Heat + "% aPolice:" + area.CopPresance + " aGang:" + area.GangPresance+"/"+area.Dealers + " RChance:"+ratChance+ "% aDrug:"+area.Drugs[0].Demand/area.Dealers+"/"+area.Drugs[0].Delay / (area.Drugs[0].Demand/area.Dealers) + "ms DemandNotMet"+area.DemandNotMet;                                        
+                
 
                 if (LsMenuPool != null)
                 {
@@ -1594,11 +1589,14 @@ namespace LSlife
                                         {
                                             SendTextMsg("I found the guy that got you, i sent you his location.");
                                             attacker = p;
-                                            attacker.IsPersistent = true;                                            
+                                            attacker.IsPersistent = true;
                                             attacker.Money = Game.Player.Money;
                                             Game.Player.Money -= Game.Player.Money;
                                             if (angryPeds.Contains(attacker)) { angryPeds.Remove(attacker); }
+                                            if (randAttackers.Contains(attacker)) { randAttackers.Remove(attacker); }
                                             if (attacker.CurrentBlip.Exists()) { attacker.CurrentBlip.Remove(); }
+                                            attacker.BlockPermanentEvents = true;
+                                            attacker.IsPersistent = true;
                                             attacker.AddBlip();
                                             attacker.CurrentBlip.IsFriendly = false;
                                             attacker.CurrentBlip.Name = "Your Killer";
@@ -1834,7 +1832,12 @@ namespace LSlife
                                 }
                                 else
                                 {
-                                    if (!p.IsInCombatAgainst(Game.Player.Character) || !p.IsInMeleeCombat) { p.Task.FightAgainst(Game.Player.Character); }                                                                                                       
+                                    if(p.IsPersistent == false) { p.IsPersistent = true; }
+                                    p.BlockPermanentEvents = true;
+                                    if (!p.IsInCombatAgainst(Game.Player.Character) || !p.IsInMeleeCombat)
+                                    {                                        
+                                        p.Task.FightAgainst(Game.Player.Character);
+                                    }                                                                                                       
                                 }                                
                             }                            
                         }
@@ -2738,7 +2741,7 @@ namespace LSlife
                                     {
                                         lastAngryTime = Game.GameTime;                                        
                                         int anger = rnd.Next(0, 100);
-                                        if (anger >= (99 - areas[areaIndex].GangPresance))
+                                        if (anger >= (98 - areas[areaIndex].GangPresance))
                                         {                                            
                                             if (DEBUG)
                                             {
@@ -2774,8 +2777,7 @@ namespace LSlife
                                             ped.CurrentBlip.IsFriendly = false;
                                             ped.Task.FightAgainstHatedTargets(100);
                                             ped.Task.FightAgainst(Game.Player.Character);
-                                            oldCustomers.Remove(ped);
-                                            
+                                            oldCustomers.Remove(ped);                                            
                                             angryPeds.Add(ped);
                                             if (playerHasBag && rnd.Next(0,10) == 0)
                                             {

@@ -123,6 +123,7 @@ namespace LSlife
                 parentElement.Add(new XElement("Destroyed", "false"));
                 parentElement.Add(new XElement("Handle", veh.Handle.ToString()));
                 parentElement.Add(new XElement("Name", veh.DisplayName));
+                parentElement.Add(new XElement("Hash", veh.Model.Hash));
                 parentElement.Add(new XElement("PosX", veh.Position.X));
                 parentElement.Add(new XElement("PosY", veh.Position.Y));
                 parentElement.Add(new XElement("PosZ", veh.Position.Z));
@@ -185,7 +186,8 @@ namespace LSlife
 
         public static void VehicleLoad()
         {
-            string drugCarModel = "";
+            string drugCarName = "";
+            int drugCarHash = -1;
             Vector3 drugCarPos = Vector3.Zero;
             float drugCarHead = 0;
             VehicleColor drugCarPriCol = VehicleColor.Blue;
@@ -212,7 +214,11 @@ namespace LSlife
                     {
                         if (e.Name == "Name")
                         {
-                            drugCarModel = e.Value;
+                            drugCarName = e.Value;
+                        }
+                        if(e.Name == "Hash")
+                        {
+                            int.TryParse(e.Value, out drugCarHash);
                         }
                         if (e.Name == "PosX")
                         {
@@ -287,14 +293,26 @@ namespace LSlife
                     }
                 }
             }
-            drugCar = World.CreateVehicle(new Model(drugCarModel), drugCarPos, drugCarHead);
-            Wait(10);
+            Model model = new Model(drugCarName);
+            if(model.IsInCdImage)
+            {
+                drugCar = World.CreateVehicle(new Model(drugCarName), drugCarPos, drugCarHead);
+            }
+            else
+            {
+                model = new Model(drugCarHash);
+                if (model.IsInCdImage)
+                {
+                    drugCar = World.CreateVehicle(model, drugCarPos, drugCarHead);
+                }
+            }                                
+            Wait(5);
             if (drugCar != null)
             {
                 drugCar.InstallModKit();
                 if (DEBUG)
                 {
-                    UI.Notify("" + drugCarModel + " | " + drugCarPos + " | " + Game.Player.Character.Position);
+                    UI.Notify("" + drugCarName + " | " + drugCarPos);
                 }
                 drugCar.PrimaryColor = drugCarPriCol;
                 drugCar.SecondaryColor = drugCarSecCol;
@@ -415,6 +433,55 @@ namespace LSlife
             }
         }
 
+        public static void UpdateSave()
+        {
+            bool changed = false;
+            foreach(XElement element in LSLifeSave.Descendants())
+            {
+                if(element.Name == "dealer1")
+                {
+                    foreach(XElement e in element.Elements())
+                    {
+                        if(e.Name == "debt" && e.Value != dealer1Debt.ToString())
+                        {
+                            e.Value = dealer1Debt.ToString();
+                            changed = true;
+                        }
+                        if (e.Name == "weed" && e.Value != dealer1Weed.ToString())
+                        {
+                            e.Value = dealer1Weed.ToString();
+                            changed = true;
+                        }
+                        if (e.Name == "crack" && e.Value != dealer1Crack.ToString())
+                        {
+                            e.Value = dealer1Crack.ToString();
+                            changed = true;
+                        }
+                        if (e.Name == "cocain" && e.Value != dealer1Cocain.ToString())
+                        {
+                            e.Value = dealer1Cocain.ToString();
+                            changed = true;
+                        }
+                        if (e.Name == "rep" && e.Value != dealer1Rep.ToString())
+                        {
+                            e.Value = dealer1Rep.ToString();
+                            changed = true;
+                        }
+                        if (e.Name == "money" && e.Value != dealer1Money.ToString())
+                        {
+                            e.Value = dealer1Money.ToString();
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            if(changed)
+            {
+                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+                if(DEBUG) { UI.Notify("Save Changed"); }
+            }
+        }
+
         public static void UpdateInventory()
         {
             foreach (KeyValuePair<string, int> entry in PlayerInventory)
@@ -532,7 +599,7 @@ namespace LSlife
                     if (!dealer1ReloadOrder && !dealer1Reloaded)
                     {
                         dealer1ReloadOrder = true;
-                        int waitTime = 10 - (int)LsFunctions.CurrentRepLvl(dealer1Rep);
+                        int waitTime = 10 - (int)CurrentRepLvl(dealer1Rep);
                         int timeTodeliver = 0;
                         bool nextday = false;
                         if (hour + waitTime > 24) { timeTodeliver = 0 + (hour + waitTime - 24); nextday = true; }
@@ -559,7 +626,7 @@ namespace LSlife
                     }
                 }
                 int timeReduction = 0;
-                if (LsFunctions.CurrentRepLvl(dealer1Rep) > 36)
+                if (CurrentRepLvl(dealer1Rep) > 36)
                 {
                     timeReduction = 360000;
                 }
@@ -639,40 +706,7 @@ namespace LSlife
                     dealer1Money += (int)weedMoney + (int)crackMoney + (int)cocainMoney;
                     SendTextMsg("Zee Reloaded. He got " + "Weed:" + finalWeed + " Crack:" + finalCrack + " Cocaine:" + finalCocain);                    
                     LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                    foreach (XElement element in LSLifeSave.Descendants())
-                    {
-                        if (element.Name == "dealer1")
-                        {
-                            foreach (XElement drugCarEle in element.Elements())
-                            {
-                                if (drugCarEle.Name == "debt")
-                                {
-                                    drugCarEle.Value = dealer1Debt.ToString();
-                                }
-                                if (drugCarEle.Name == "weed")
-                                {
-                                    drugCarEle.Value = dealer1Weed.ToString();
-                                }
-                                if (drugCarEle.Name == "crack")
-                                {
-                                    drugCarEle.Value = dealer1Crack.ToString();
-                                }
-                                if (drugCarEle.Name == "cocain")
-                                {
-                                    drugCarEle.Value = dealer1Cocain.ToString();
-                                }
-                                if (drugCarEle.Name == "money")
-                                {
-                                    drugCarEle.Value = dealer1Money.ToString();
-                                }
-                                if (drugCarEle.Name == "reloaded")
-                                {
-                                    drugCarEle.Value = dealer1Reloaded.ToString();
-                                }
-                            }
-                        }
-                    }
-                    LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+                    UpdateSave();
                 }
                 if (day == dDay && !dealer1Reloaded && dealer1ReloadOrder)
                 {
@@ -725,47 +759,13 @@ namespace LSlife
                     SendTextMsg("Zee Reloaded. He got " + "Weed:" + finalWeed + " Crack:" + finalCrack + " Cocaine:" + finalCocain);
                     if (DEBUG) { UI.Notify("Weed:" + finalWeed + " Crack:" + finalCrack + " Cocaine:" + finalCocain); }
                     LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                    foreach (XElement element in LSLifeSave.Descendants())
-                    {
-                        if (element.Name == "dealer1")
-                        {
-                            foreach (XElement drugCarEle in element.Elements())
-                            {
-                                if (drugCarEle.Name == "debt")
-                                {
-                                    drugCarEle.Value = dealer1Debt.ToString();
-                                }
-                                if (drugCarEle.Name == "weed")
-                                {
-                                    drugCarEle.Value = dealer1Weed.ToString();
-                                }
-                                if (drugCarEle.Name == "crack")
-                                {
-                                    drugCarEle.Value = dealer1Crack.ToString();
-                                }
-                                if (drugCarEle.Name == "cocain")
-                                {
-                                    drugCarEle.Value = dealer1Cocain.ToString();
-                                }
-                                if (drugCarEle.Name == "money")
-                                {
-                                    drugCarEle.Value = dealer1Money.ToString();
-                                }
-                                if (drugCarEle.Name == "reloaded")
-                                {
-                                    drugCarEle.Value = dealer1Reloaded.ToString();
-                                }
-                            }
-                        }
-                    }
-                    LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+                    UpdateSave();                    
                 }
             }
             if (Function.Call<int>(Hash.GET_CLOCK_DAY_OF_WEEK) != day)
             {
                 day = Function.Call<int>(Hash.GET_CLOCK_DAY_OF_WEEK);
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-
                 if (dealer1Money > 1200000) { dealer1Money = 1200000; }
                 if (dealer1Weed > 0)
                 {
@@ -837,9 +837,8 @@ namespace LSlife
                         }
                     }
                 }
-                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+                UpdateSave();                
             }
-
         }
 
         public static Vector3 WeedPlaceLocation()
