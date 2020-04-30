@@ -956,9 +956,7 @@ namespace LSlife
                             myUIText.Draw();
                         }
                     }
-                    //string debugData = "Areas: "+areas.Count+" aName:" + area.Name + " aHeat:" + area.Heat + "% aPolice:" + area.CopPresance + " aGang:" + area.GangPresance+"/"+area.Dealers + " RChance:"+ratChance+ "% aDrug:"+area.Drugs[0].Demand/area.Dealers+"/"+area.Drugs[0].Delay / (area.Drugs[0].Demand/area.Dealers) + "ms DemandNotMet"+area.DemandNotMet;
-                    
-                    
+                    //string debugData = "Areas: "+areas.Count+" aName:" + area.Name + " aHeat:" + area.Heat + "% aPolice:" + area.CopPresance + " aGang:" + area.GangPresance+"/"+area.Dealers + " RChance:"+ratChance+ "% aDrug:"+area.Drugs[0].Demand/area.Dealers+"/"+area.Drugs[0].Delay / (area.Drugs[0].Demand/area.Dealers) + "ms DemandNotMet"+area.DemandNotMet;                                        
                 }
 
                 if (LsMenuPool != null)
@@ -1469,12 +1467,7 @@ namespace LSlife
                             if (DEBUG) { UI.Notify("rnd attackers are dead"); }
                         }
                     }                    
-                    playerGroup = Game.Player.Character.CurrentPedGroup;
-                    if(DispatchAudio.Started)
-                    {
-                        DispatchAudio.Play();
-                    }
-                    
+                    playerGroup = Game.Player.Character.CurrentPedGroup;                   
                     DateTimeUpdate();
                     if (attackerPickupSpawned)
                     {
@@ -2526,13 +2519,9 @@ namespace LSlife
                         if (Game.IsControlJustPressed(2, GTA.Control.ContextSecondary) & chilling == false)
                         {
                             Wait(10);
-                            float dHeading = drugDealer1.Heading;
-                            float pHeading = Game.Player.Character.Heading;
-                            drugDealer1.Task.StartScenario("WORLD_HUMAN_SMOKING_POT", drugDealer1.Position);
-                            drugDealer1.Heading = dHeading;
+                            drugDealer1.Task.StartScenario("WORLD_HUMAN_SMOKING_POT", drugDealer1.Position, drugDealer1.Heading);
                             Wait(10);
-                            Game.Player.Character.Task.StartScenario("WORLD_HUMAN_SMOKING_POT", Game.Player.Character.Position);
-                            Game.Player.Character.Heading = pHeading;
+                            Game.Player.Character.Task.StartScenario("WORLD_HUMAN_SMOKING_POT", Game.Player.Character.Position, Game.Player.Character.Heading);
                             chilling = true;
                         }
                         if (chilling)

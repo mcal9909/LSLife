@@ -455,11 +455,11 @@ namespace LSlife
                                 saveChanged = true;
                             }
                         }
-                        if (e.Name == "weed")
+                        if (e.Name == "cocain")
                         {
-                            if (e.Value != PlayerInventory["Weed"].ToString())
+                            if (e.Value != PlayerInventory["Cocaine"].ToString())
                             {
-                                e.Value = PlayerInventory["Crack"].ToString();
+                                e.Value = PlayerInventory["Cocaine"].ToString();
                                 saveChanged = true;
                             }
                         }
@@ -467,7 +467,6 @@ namespace LSlife
                 }
             }
             if(saveChanged) { LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml"); }
-
             foreach (WeaponHash weapon in Enum.GetValues(typeof(WeaponHash)))
             {
                 bool hasPedGotWeapon = Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, Game.Player.Character, (int)weapon);
@@ -1054,8 +1053,7 @@ namespace LSlife
                 {
                     SendTextMsg("They spotted you dealing, your gona be hot round there now.");
                     areas[areaIndex].Heat += 1000;
-                    Game.Player.WantedLevel = 1;
-                    DispatchAudio.Started = true;
+                    Game.Player.WantedLevel = 1;                    
                     break;
                 }
             }
