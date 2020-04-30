@@ -80,7 +80,7 @@ namespace LSlife
         //Customer Menu
         UIMenu customerMainMenu;
         UIMenuItem sell;
-        UIMenuItem turnAway;       
+        UIMenuItem turnAway;
 
         // TIMER BAR STUFF
         TimerBarPool timerBarPool = new TimerBarPool();
@@ -100,7 +100,7 @@ namespace LSlife
 
 
         float displayHelpTimer = Game.GameTime;
-        
+
         int day;
         int hour;
         int dayUpdateTimer;
@@ -135,9 +135,7 @@ namespace LSlife
         bool removedStuff = true;
         bool isAtHome = false;
         bool isDealing = false;
-        bool chilling = false;
-        Player player = Game.Player;
-        Ped playerPed = Game.Player.Character;
+        bool chilling = false;         
         Dictionary<string, int> areas = new Dictionary<string, int>()
             {
                 { "ALAMO"    ,1  },
@@ -228,6 +226,96 @@ namespace LSlife
                 {"HORS"      ,8  },
                 {"WVINE"     ,10 },
                 {"ZANCUDO"   ,0  } };
+        Dictionary<string, int> areaHeat = new Dictionary<string, int>()
+            {
+                { "ALAMO"    ,0  },
+                {"ALTA"      ,0 },
+                {"BHAMCA"    ,0  },
+                {"BANHAMC"   ,0  },
+                {"BANNING"   ,0  },
+                {"JAIL"      ,0 },
+                {"BRADP"     ,0  },
+                {"BURTON"    ,0 },
+                {"CALAFB"    ,0  },
+                {"CCREAK"    ,0  },
+                {"CHAMH"     ,0  },
+                {"CMSW"      ,0  },
+                {"CHU"       ,0  },
+                {"CYPRE"     ,0  },
+                {"DAVIS"     ,0  },
+                {"ZQ_UAR"    ,0  },
+                {"DELPE"     ,0 },
+                {"DELBE"     ,0 },
+                {"DOWNT"     ,0 },
+                {"DTVINE"    ,0 },
+                {"EAST_V"    ,0  },
+                {"EBURO"     ,0  },
+                {"ELGORL"    ,0  },
+                {"ELYSIAN"   ,0  },
+                {"ARMYB"     ,0 },
+                {"GALFISH"   ,0  },
+                {"DESRT"     ,0  },
+                {"GRAPES"    ,0  },
+                {"GREATC"    ,0  },
+                {"golf"      ,0 },
+                {"HARMO"     ,0  },
+                {"HAWICK"    ,0  },
+                {"HUMLAB"    ,0 },
+                {"LMESA"     ,0  },
+                {"LOSPUER"   ,0  },
+                {"LAGO"      ,0  },
+                {"LDAM"      ,0  },
+                {"LACT"      ,0  },
+                {"LEGSQU"    ,0  },
+                {"KOREAT"    ,0  },
+                {"AIRP"      ,0 },
+                {"STAD"      ,0  },
+                {"MIRR"      ,0  },
+                {"SKID"      ,0  },
+                {"MORN"      ,0  },
+                {"MTCHIL"    ,0  },
+                {"MTGORDO"   ,0  },
+                {"MTJOSE"    ,0  },
+                {"MURRI"     ,0  },
+                {"NOOSE"     ,0 },
+                {"NCHU"      ,0  },
+                {"PBLUFF"    ,0  },
+                {"OCEANA"    ,0  },
+                {"PALETO"    ,0  },
+                {"PALCOV"    ,0  },
+                {"PALFOR"    ,0  },
+                {"PALMPOW"   ,0  },
+                {"PALHIGH"   ,0  },
+                {"PBOX"      ,0  },
+                {"ZP_ORT"    ,0  },
+                {"PROCOB"    ,0  },
+                {"DELSOL"    ,0  },
+                {"RANCHO"    ,0  },
+                {"CANNY"     ,0  },
+                {"RTRAK"     ,0  },
+                {"MOVIE"     ,0 },
+                {"RICHM"     ,0 },
+                {"RGLEN"     ,0 },
+                {"ROCKF"     ,0 },
+                {"WINDF"     ,0  },
+                {"SanAnd"    ,0  },
+                {"SANCHIA"   ,0  },
+                {"SANDY"     ,0  },
+                {"SLAB"      ,0  },
+                {"STRAW"     ,0  },
+                {"TATAMO"    ,0  },
+                {"TERMINA"   ,0  },
+                {"TEXTI"     ,0  },
+                {"TONGVAH"   ,0  },
+                {"TONGVAV"   ,0  },
+                {"VESP"      ,0  },
+                {"BEACH"     ,0  },
+                {"VCANA"     ,0  },
+                {"VINE"      ,0 },
+                {"CHIL"      ,0  },
+                {"HORS"      ,0  },
+                {"WVINE"     ,0 },
+                {"ZANCUDO"   ,0  } };
         Random rnd = new Random();
         Dictionary<string, int> PlayerInventory = new Dictionary<string, int>();
         int TotalDrugsCarried = 0;
@@ -237,6 +325,7 @@ namespace LSlife
         bool notFined = true;
         bool playerDead = false;
         List<dynamic> playerWeps = new List<dynamic>();
+        int newWepAmount = 0;
         List<XElement> playerWeapons = new List<XElement>();
         bool playerHasBag = false;
 
@@ -282,15 +371,17 @@ namespace LSlife
         int jobAcceptTimer;
         bool jobOffer = false;
         bool jobAccepted = false;
+        int oneSecDelay;
         int wealth = 0;
         bool firstRun = true;
+        bool policeBlips = false;
 
 
 
         //player housing
         Vector3 houseTeleIn = new Vector3(151.36f, -1007.56f, -99f);
         Vector3 houseTeleOut = new Vector3(-112.616f, -1479.229f, 37f);
-        Vector3 houseStash = new Vector3(151.9f, -1001.4f, -99f);        
+        Vector3 houseStash = new Vector3(151.9f, -1001.4f, -99f);
         int stashWeed;
         int stashCrack;
         int stashCocain;
@@ -320,7 +411,7 @@ namespace LSlife
             //blips
             if (EnableBlips)
             {
-                stashBlip = World.CreateBlip(new Vector3(-112.616f, -1479.229f, 30f));                
+                stashBlip = World.CreateBlip(new Vector3(-112.616f, -1479.229f, 30f));
                 Function.Call(Hash.SET_BLIP_SPRITE, stashBlip, 40);
                 stashBlip.Color = BlipColor.Green;
                 stashBlip.IsShortRange = true;
@@ -332,7 +423,7 @@ namespace LSlife
         void Setup()
         {
 
-            iniSettings = ScriptSettings.Load("scripts\\LSlife.ini");                                    
+            iniSettings = ScriptSettings.Load("scripts\\LSlife.ini");
             DEBUG = iniSettings.GetValue<bool>("OPTIONS", "DEBUG", false);
             LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
 
@@ -454,13 +545,13 @@ namespace LSlife
                 }
             }
             XDocument VehicleXml = XDocument.Load("scripts\\LSLife\\LSLife_Vehicles.xml");
-            foreach(XElement vehicles in VehicleXml.Descendants())
+            foreach (XElement vehicles in VehicleXml.Descendants())
             {
                 if (vehicles.Name == "Vehicle")
                 {
-                    foreach(XElement e in vehicles.Elements())
+                    foreach (XElement e in vehicles.Elements())
                     {
-                        if(e.Name == "Destroyed")
+                        if (e.Name == "Destroyed")
                         {
                             bool.TryParse(e.Value, out drugCarDestroyed);
                         }
@@ -523,11 +614,11 @@ namespace LSlife
                     var parentElement = new XElement("weapon");
                     parentElement.SetAttributeValue("id", i);
                     var weaponNameElement = new XElement("HASH", weapon);
-                    if(DEBUG)
+                    if (DEBUG)
                     {
                         UI.Notify("Added " + weapon + " to playerWeapons list.");
                     }
-                    
+
                     var weaponAmmoElement = new XElement("AMMO", ammunitionInWeapon);
                     parentElement.Add(weaponNameElement);
                     parentElement.Add(weaponAmmoElement);
@@ -656,7 +747,7 @@ namespace LSlife
             //stash MONEY
             putMoneyStash = new UIMenuSliderItem("Money $");
             stashPutMenu.AddItem(putMoneyStash);
-            putMoneyStash.Maximum = player.Money;
+            putMoneyStash.Maximum = Game.Player.Money;
             putMoneyStash.Multiplier = 100;
             takeMoneyStash = new UIMenuSliderItem("Money $");
             stashTakeMenu.AddItem(takeMoneyStash);
@@ -694,7 +785,7 @@ namespace LSlife
             vehStashTakeMenu = LsMenuPool.AddSubMenu(vehStashMainMenu, "Take");
             vehStashPutMenu = LsMenuPool.AddSubMenu(vehStashMainMenu, "Stash");
             //stash weed
-            putWeedVeh = new UIMenuSliderItem("Weed " +PlayerInventory["Weed"]+ "g");
+            putWeedVeh = new UIMenuSliderItem("Weed " + PlayerInventory["Weed"] + "g");
             vehStashPutMenu.AddItem(putWeedVeh);
             putWeedVeh.Maximum = PlayerInventory["Weed"];
             putWeedVeh.Multiplier = 1;
@@ -727,9 +818,9 @@ namespace LSlife
             putCocainVeh.OnSliderChanged += onSliderChange;
             takeCocainVeh.OnSliderChanged += onSliderChange;
             //stash MONEY
-            putMoneyVeh = new UIMenuSliderItem("Money $" + player.Money);
+            putMoneyVeh = new UIMenuSliderItem("Money $" + Game.Player.Money);
             vehStashPutMenu.AddItem(putMoneyVeh);
-            putMoneyVeh.Maximum = player.Money;
+            putMoneyVeh.Maximum = Game.Player.Money;
             putMoneyVeh.Multiplier = 100;
             takeMoneyVeh = new UIMenuSliderItem("Money $" + drugCarMoney);
             vehStashTakeMenu.AddItem(takeMoneyVeh);
@@ -801,7 +892,7 @@ namespace LSlife
             hour = Function.Call<int>(Hash.GET_CLOCK_HOURS);
             dayUpdateTimer = Game.GameTime;
             jobOfferTimer = Game.GameTime;
-            
+
             //Loaded
             //UI.Notify("LS Life Alpha Loaded, Give Zee a call.");
         }
@@ -811,14 +902,14 @@ namespace LSlife
         {
             if (item == WeedBuy && dealer1Weed > 0)
             {
-                
+
                 var inGrams = bushWeed.Value * 28;
                 int total = bushWeed.Value * weed1Price;
                 PlayerInventory["Weed"] += inGrams;
                 bool sale = false;
-                if (player.Money >= total)
+                if (Game.Player.Money >= total)
                 {
-                    player.Money -= total;
+                    Game.Player.Money -= total;
                     dealer1Money += total;
                     drugDealer1.Money = dealer1Money;
                     UI.ShowSubtitle("Nice doing business with you.", 5000);
@@ -833,13 +924,13 @@ namespace LSlife
                     }
                     else
                     {
-                        
+
                         dealer1Debt += total;
                         payDebt.Text = ("Pay Debt $" + dealer1Debt);
                         UI.ShowSubtitle("Ill add this one to youre bill, you now owe me $" + dealer1Debt, 5000);
                         sale = true;
                     }
-                    
+
                 }
                 if (sale)
                 {
@@ -886,7 +977,7 @@ namespace LSlife
                     {
                         TotalDrugsCarried += PlayerInventory[entry.Key];
                     }
-                }                
+                }
             }
         }
 
@@ -899,9 +990,9 @@ namespace LSlife
                 int total = crack.Value * crack1Price;
                 PlayerInventory["Crack"] += inGrams;
                 bool sale = false;
-                if (player.Money >= total)
+                if (Game.Player.Money >= total)
                 {
-                    player.Money -= total;
+                    Game.Player.Money -= total;
                     dealer1Money += total;
                     drugDealer1.Money = dealer1Money;
                     UI.ShowSubtitle("Nice doing business with you.", 5000);
@@ -968,7 +1059,7 @@ namespace LSlife
                     {
                         TotalDrugsCarried += PlayerInventory[entry.Key];
                     }
-                }                
+                }
             }
         }
 
@@ -981,9 +1072,9 @@ namespace LSlife
                 int total = cocain.Value * cocain1Price;
                 PlayerInventory["Cocain"] += inGrams;
                 bool sale = false;
-                if (player.Money >= total)
+                if (Game.Player.Money >= total)
                 {
-                    player.Money -= total;
+                    Game.Player.Money -= total;
                     dealer1Money += total;
                     drugDealer1.Money = dealer1Money;
                     UI.ShowSubtitle("Nice doing business with you.", 5000);
@@ -1050,7 +1141,7 @@ namespace LSlife
                     {
                         TotalDrugsCarried += PlayerInventory[entry.Key];
                     }
-                }               
+                }
             }
         }
 
@@ -1059,13 +1150,13 @@ namespace LSlife
         {
             if (item == payDebt && dealer1Debt > 0)
             {
-                if (player.Money > 0)
+                if (Game.Player.Money > 0)
                 {
                     int total = 0;
-                    if (player.Money > dealer1Debt) { total = dealer1Debt; }
-                    else { total = player.Money; }
+                    if (Game.Player.Money > dealer1Debt) { total = dealer1Debt; }
+                    else { total = Game.Player.Money; }
                     dealer1Debt -= total;
-                    player.Money -= total;
+                    Game.Player.Money -= total;
                     dealer1Money += total;
                     drugDealer1.Money = dealer1Money;
                     UI.ShowSubtitle("Thanks man", 5000);
@@ -1144,7 +1235,7 @@ namespace LSlife
                             if (e.Name == "weed")
                             {
                                 e.Value = drugCarWeed.ToString();
-                            }                            
+                            }
                         }
                     }
                 }
@@ -1157,7 +1248,7 @@ namespace LSlife
             if (item == putCrackVeh)
             {
                 drugCarCrack += putCrackVeh.Value;
-                PlayerInventory["Crack"] -= putCrackVeh.Value;                
+                PlayerInventory["Crack"] -= putCrackVeh.Value;
                 putCrackVeh.Maximum -= putCrackVeh.Value;
                 takeCrackVeh.Maximum = drugCarCrack;
                 TotalDrugsCarried = 0;
@@ -1195,7 +1286,7 @@ namespace LSlife
             if (item == putCocainVeh)
             {
                 drugCarCocain += putCocainVeh.Value;
-                PlayerInventory["Cocain"] -= putCocainVeh.Value;                
+                PlayerInventory["Cocain"] -= putCocainVeh.Value;
                 putCocainVeh.Maximum -= putCocainVeh.Value;
                 takeCocainVeh.Maximum = drugCarCocain;
                 TotalDrugsCarried = 0;
@@ -1233,13 +1324,13 @@ namespace LSlife
             if (item == putMoneyVeh)
             {
                 drugCarMoney += putMoneyVeh.Value;
-                player.Money -= putMoneyVeh.Value;
+                Game.Player.Money -= putMoneyVeh.Value;
                 putMoneyVeh.Maximum -= putMoneyVeh.Value;
                 takeMoneyVeh.Maximum = drugCarMoney;
-                putMoneyVeh.Text = "Money $" + player.Money;
+                putMoneyVeh.Text = "Money $" + Game.Player.Money;
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
-                {                    
+                {
                     if (element.Name == "drugCarStash")
                     {
                         foreach (XElement e in element.Elements())
@@ -1284,7 +1375,7 @@ namespace LSlife
                             var rootElement = vehWeaponsXML.Element("weapons");
                             rootElement?.Add(w);
                             vehWeaponsXML.Save("scripts\\LSLife\\LsLife_Vehicle_Weapons.xml");
-                            playerPed.Weapons.Remove(wep);
+                            Game.Player.Character.Weapons.Remove(wep);
                             playerWeapons.Remove(w);
                             playerWeps.RemoveAt(putWeaponVeh.Index);
                             vehWeapons.Add(w);
@@ -1377,7 +1468,7 @@ namespace LSlife
             if (item == takeCocainVeh)
             {
                 PlayerInventory["Cocain"] += takeCocainVeh.Value;
-                drugCarCocain -= takeCocainVeh.Value;               
+                drugCarCocain -= takeCocainVeh.Value;
                 takeCocainVeh.Maximum -= takeCocainVeh.Value;
                 putCocainStash.Maximum = PlayerInventory["Cocain"];
                 TotalDrugsCarried = 0;
@@ -1414,10 +1505,10 @@ namespace LSlife
             }
             if (item == takeMoneyVeh)
             {
-                player.Money += takeMoneyVeh.Value;
+                Game.Player.Money += takeMoneyVeh.Value;
                 drugCarMoney -= takeMoneyVeh.Value;
                 takeMoneyVeh.Maximum -= takeMoneyVeh.Value;
-                putMoneyVeh.Maximum = player.Money;
+                putMoneyVeh.Maximum = Game.Player.Money;
                 takeMoneyVeh.Text = "Money $" + drugCarMoney;
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
@@ -1468,14 +1559,14 @@ namespace LSlife
                                                 Int32.TryParse(e.Value, out ammo);
                                             }
                                         }
-                                        playerPed.Weapons.Give(wep, ammo, true, false);
-                                        playerPed.Weapons.Select(wep, true);
+                                        Game.Player.Character.Weapons.Give(wep, ammo, true, false);
+                                        Game.Player.Character.Weapons.Select(wep, true);
                                         foreach (XElement e in rootElement.Elements())
                                         {
                                             if (e.Name == "COMPONENT")
                                             {
                                                 Enum.TryParse(e.Value, out WeaponComponent wepcomp);
-                                                playerPed.Weapons.Current.SetComponent(wepcomp, true);
+                                                Game.Player.Character.Weapons.Current.SetComponent(wepcomp, true);
                                             }
                                         }
                                         playerWeapons.Add(element);
@@ -1498,11 +1589,11 @@ namespace LSlife
         void onSliderChange(UIMenuSliderItem sender, int index)
         {
             //VEHICLE SLIDERS
-            if(sender == takeWeedVeh)
+            if (sender == takeWeedVeh)
             {
                 vehStashTakeMenu.Subtitle.Caption = "Take " + takeWeedVeh.Value + "g";
             }
-            if(sender == putWeedVeh)
+            if (sender == putWeedVeh)
             {
                 vehStashPutMenu.Subtitle.Caption = "Put " + putWeedVeh.Value + "g";
             }
@@ -1715,9 +1806,9 @@ namespace LSlife
             if (item == putCocainStash)
             {
                 stashCocain += putCocainStash.Value;
-                PlayerInventory["Cocain"] -= putCocainStash.Value;                
+                PlayerInventory["Cocain"] -= putCocainStash.Value;
                 putCocainStash.Maximum -= putCocainStash.Value;
-                takeCocainStash.Maximum = stashCocain;                
+                takeCocainStash.Maximum = stashCocain;
                 TotalDrugsCarried = 0;
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
@@ -1757,7 +1848,7 @@ namespace LSlife
                 takeMoneyStash.Maximum = stashMoney;
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
-                {                    
+                {
                     if (element.Name == "playerStash")
                     {
                         foreach (XElement e in element.Elements())
@@ -1935,7 +2026,7 @@ namespace LSlife
                 putMoneyStash.Maximum = player.Money;
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
-                {                    
+                {
                     if (element.Name == "playerStash")
                     {
                         foreach (XElement e in element.Elements())
@@ -2049,13 +2140,13 @@ namespace LSlife
                     {
                         customerSellTo.Ped.Task.PerformSequence(PerformTaskSeq(1, customerSellTo.Vehicle));
                         RemovePedFromWorld(customerSellTo.Ped, false);
-                        
+
                     }
                     else
                     {
                         RemovePedFromWorld(customerSellTo.Ped, true);
                     }
-                    customers.Remove(customerSellTo);                    
+                    customers.Remove(customerSellTo);
                     lastTimeDealDone = Game.GameTime;
                     oldCustomers.Add(customerSellTo.Ped);
                 }
@@ -2076,14 +2167,13 @@ namespace LSlife
                     {
                         firstRun = false;
                         Function.Call(Hash.SET_PED_COMPONENT_VARIATION, playerPed, 9, 0, 0, 0);
-                    }                    
+                    }
                 }
-
                 if (DEBUG)
                 {
                     int awepsCount = 0;
                     int pwepsCount = 0;
-                    //myUIText = new UIText("Weed:" +dealer1Weed+" | Crack:"+dealer1Crack+" | Cocain:"+dealer1Cocain+" | Reloaded:"+dealer1Reloaded+" | Ordered:"+dealer1ReloadOrder+" | Day delivery:"+dealer1ReloadDay+" | Current day:"+day, new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
+                    myUIText = new UIText("Weed:" +dealer1Weed+" | Crack:"+dealer1Crack+" | Cocain:"+dealer1Cocain+" | Reloaded:"+dealer1Reloaded+" | Ordered:"+dealer1ReloadOrder+" | Day delivery:"+dealer1ReloadDay+" | Current day:"+day, new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
                     foreach (XElement element in attackerWeapons)
                     {
                         if (element.Name == "weapon")
@@ -2091,18 +2181,18 @@ namespace LSlife
                             awepsCount += 1;
                         }
                     }
-                    foreach(XElement element in playerWeapons)
+                    foreach (XElement element in playerWeapons)
                     {
                         if (element.Name == "weapon")
                         {
                             pwepsCount += 1;
                         }
                     }
-                    string s = "AWeps =" + awepsCount + "PWeps =" + pwepsCount + " drugs " + attackerInventory.Count;
-                    myUIText = new UIText(s, new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
+                    string s = "Area Heat:" + areaHeat[World.GetZoneNameLabel(playerPed.Position)] + " Heat:" + ((float)ratChance/100).Clamp(0, 1) +" Rat:"+ratChance+ " Attacking:" +attackerAttacking+ " pWepA:"+playerWeps.Count+ " nWepA:"+newWepAmount;
+                    //myUIText = new UIText(s, new Point(10, 10), 0.4f, Color.WhiteSmoke, 0, false);
                     myUIText.Draw();
-                }       
-                                
+                }
+
                 if (LsMenuPool != null)
                 {
                     LsMenuPool.ProcessMenus();
@@ -2110,17 +2200,75 @@ namespace LSlife
                 iFruit.Update();
                 if (timerBarPool != null)
                 {
-                    if(!LsMenuPool.IsAnyMenuOpen()) { timerBarPool.Draw(); }                    
+                    if (!LsMenuPool.IsAnyMenuOpen() && isDealing) { timerBarPool.Draw(); }
+                }
+                // 1000ms delay
+                if (Game.GameTime > oneSecDelay + 10000)
+                {
+                    oneSecDelay = Game.GameTime;
+                    if (player.IsPlaying)
+                    {
+                        newWepAmount = 0;
+                        foreach (WeaponHash weapon in Enum.GetValues(typeof(WeaponHash)))
+                        {
+                            if (Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, Game.Player.Character, (int)weapon))
+                            {
+                                newWepAmount++;
+                            }
+                        }
+                        if (newWepAmount != playerWeps.Count)
+                        {
+                            if (DEBUG) { UI.Notify("Player weapon change detected"); }
+                            playerWeps.Clear();
+                            playerWeapons.Clear();
+                            int i = 0;
+                            foreach (WeaponHash weapon in Enum.GetValues(typeof(WeaponHash)))
+                            {
+                                bool hasPedGotWeapon = Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON, Game.Player.Character, (int)weapon);
+                                int ammunitionInWeapon = Function.Call<int>(Hash.GET_AMMO_IN_PED_WEAPON, Game.Player.Character, (int)weapon);
+                                if (hasPedGotWeapon)
+                                {
+
+                                    var parentElement = new XElement("weapon");
+                                    parentElement.SetAttributeValue("id", i);
+                                    var weaponNameElement = new XElement("HASH", weapon);
+                                    if (DEBUG)
+                                    {
+                                        UI.Notify("Added " + weapon + " to playerWeapons list.");
+                                    }
+
+                                    var weaponAmmoElement = new XElement("AMMO", ammunitionInWeapon);
+                                    parentElement.Add(weaponNameElement);
+                                    parentElement.Add(weaponAmmoElement);
+                                    foreach (WeaponComponent component in Enum.GetValues(typeof(WeaponComponent)))
+                                    {
+                                        bool hasWeaponGotComponent = Function.Call<bool>(Hash.HAS_PED_GOT_WEAPON_COMPONENT, Game.Player.Character, (int)weapon, (int)component);
+                                        if (hasWeaponGotComponent)
+                                        {
+                                            var weaponComponentElement = new XElement("COMPONENT", component);
+                                            parentElement.Add(weaponComponentElement);
+                                        }
+                                    }
+                                    playerWeapons.Add(parentElement);
+                                    playerWeps.Add(weapon.ToString());
+                                    i++;
+                                }
+                            }
+                        }
+                    }
+                    
+                    
                 }
                 // 300ms delay
                 if (Game.GameTime > dayUpdateTimer + 350)
                 {
+                    
                     if (attackerPickupSpawned)
                     {
                         if (!attackerPickup.ObjectExists())
                         {
                             attackerPickup.Delete();
-                            attackerPickupSpawned = false;                            
+                            attackerPickupSpawned = false;
                             WeaponHash weaponHash = WeaponHash.Unarmed;
                             int ammo = 0;
                             foreach (XElement element in attackerWeapons)
@@ -2165,6 +2313,12 @@ namespace LSlife
                             }
                             attackerInventory.Clear();
 
+                            TotalDrugsCarried = 0;
+                            foreach (KeyValuePair<string, int> entry in PlayerInventory)
+                            {
+                                TotalDrugsCarried += PlayerInventory[entry.Key];
+                            }
+
                             LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                             foreach (XElement element in LSLifeSave.Descendants())
                             {
@@ -2197,6 +2351,31 @@ namespace LSlife
                     if (areas.ContainsKey(playerArea))
                     {
                         areas.TryGetValue(playerArea, out wealth);
+                        if (playerWanted)
+                        {
+                            foreach (KeyValuePair<string, int> area in areaHeat.ToList())
+                            {
+                                if (area.Key == playerArea)
+                                {
+                                    areaHeat[area.Key] += 1;
+                                }
+                            }
+                        }
+                        else
+                        {
+                            foreach (KeyValuePair<string, int> area in areaHeat.ToList())
+                            {
+                                if (area.Key == playerArea && !isDealing && area.Value > 0)
+                                {
+                                    areaHeat[area.Key] -= 1;
+                                }
+                                    
+                                if (area.Key != playerArea && area.Value > 0)
+                                {
+                                    areaHeat[area.Key] -= 1;
+                                }                                                                                                    
+                            }
+                        }
                     }
                     if (player.IsPlaying && notFined != true) { notFined = true; }
                     if (playerPed != null && !playerPed.IsAlive && !playerDead)
@@ -2219,31 +2398,33 @@ namespace LSlife
                                     {
                                         if (attacker == null)
                                         {
-                                            //UI.Notify("Yo, found the dude that got you.");
+                                            Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
+                                            UI.Notify("Your killer has been marked, go seek your revenge.");
                                             attacker = p;
-                                            attacker.IsPersistent = true;
-                                            attacker.Task.WanderAround();
+                                            attacker.IsPersistent = true;                                            
                                             attacker.Money = player.Money;
                                             player.Money -= player.Money;
-                                            angryPeds.Remove(attacker);
-                                            attacker.AddBlip();
+                                            if (angryPeds.Contains(attacker)) { angryPeds.Remove(attacker); }
+                                            if (attacker.CurrentBlip == null | !attacker.CurrentBlip.Exists())
+                                            {
+                                                attacker.AddBlip();
+                                            }
                                             attacker.CurrentBlip.IsFriendly = false;
                                             attacker.CurrentBlip.Name = "Your Killer";
                                             WeaponHash weaponHash = WeaponHash.Unarmed;
-                                            int ammo = 0;
+                                            int ammo = 0;                                            
                                             playerPed.Weapons.RemoveAll();
                                             attacker.Armor = 100;
-                                            
                                             foreach (XElement element in playerWeapons)
                                             {
                                                 if (element.Name == "weapon")
                                                 {
                                                     attackerWeapons.Add(element);
-                                                    foreach(XElement wep in element.Elements())
+                                                    foreach (XElement wep in element.Elements())
                                                     {
                                                         if (wep.Name == "HASH")
                                                         {
-                                                            Enum.TryParse(wep.Value, out weaponHash);                                                            
+                                                            Enum.TryParse(wep.Value, out weaponHash);
                                                         }
                                                         if (wep.Name == "AMMO")
                                                         {
@@ -2251,19 +2432,22 @@ namespace LSlife
                                                         }
                                                         if (weaponHash != WeaponHash.Unarmed)
                                                         {
-                                                            attacker.Weapons.Give(weaponHash, ammo, true, true);                                                            
-                                                        }                                                        
+                                                            attacker.Weapons.Give(weaponHash, ammo, true, true);
+                                                        }
                                                     }
                                                 }
                                             }
-                                            attacker.DropsWeaponsOnDeath = true;
+                                            attacker.DropsWeaponsOnDeath = false;
                                             playerWeapons.Clear();
                                             playerWeps.Clear();
                                             attacker.Weapons.Select(attacker.Weapons.BestWeapon);
-                                            UI.Notify("Killer has equiped " + attacker.Weapons.Current.Name + " & and has equiped Body Armour");
+                                            if(DEBUG)
+                                            {
+                                                UI.Notify("Killer has equiped " + attacker.Weapons.Current.Name + " & and has equiped Body Armour");
+                                            }                                            
                                             foreach (KeyValuePair<string, int> entry in PlayerInventory)
                                             {
-                                                attackerInventory.Add(entry.Key, entry.Value);                                                
+                                                attackerInventory.Add(entry.Key, entry.Value);
                                             }
                                         }
                                     }
@@ -2299,7 +2483,7 @@ namespace LSlife
                                 drugCar.CurrentBlip.Remove();
                                 drugCar.Delete();
                                 drugCar = null;
-                                
+
                                 int drugCarDrugs = 0;
                                 drugCarDrugs += drugCarWeed;
                                 drugCarDrugs += drugCarCrack;
@@ -2318,14 +2502,14 @@ namespace LSlife
                                             }
                                         }
                                     }
-                                    
+
                                     if (element.Name == "drugCarStash")
                                     {
                                         foreach (XElement carStashEle in element.Elements())
                                         {
                                             if (carStashEle.Name == "weed")
                                             {
-                                                
+
                                                 carStashEle.Value = "0";
                                             }
                                             if (carStashEle.Name == "crack")
@@ -2344,7 +2528,7 @@ namespace LSlife
                                     }
                                 }
                                 LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                            }                                                                                
+                            }
                             if (TotalDrugsCarried > 0)
                             {
                                 UI.Notify("They took $" + player.Money + ", all your Drugs and Weapons.");
@@ -2431,16 +2615,45 @@ namespace LSlife
                         int pIndex = 0;
                         foreach (Ped p in angryPeds)
                         {
+                            pIndex++;
                             if (p == null)
                             {
                                 angryPeds.RemoveAt(pIndex);
-                            }
-                            pIndex++;
+                                break;
+                            }                           
+                            
+                            if (p != null)
+                            {
+                                if (p.IsDead)
+                                {
+                                    RemovePedFromWorld(p, false);
+                                    angryPeds.Remove(p);
+                                    break;                                                                                
+                                }
+                                else
+                                if (playerPed.Position.DistanceTo(p.Position) > 100)
+                                {
+                                    RemovePedFromWorld(p, false);
+                                    angryPeds.Remove(p);
+                                    break;
+                                }
+                                else
+                                {
+                                    if (p.Position.DistanceTo(playerPed.Position) > 15)
+                                    {
+                                        p.Task.RunTo(playerPed.Position);
+                                    }
+                                    else
+                                    {
+                                        p.Task.FightAgainst(playerPed);
+                                    }                                    
+                                }                                
+                            }                            
                         }
                     }
                     if (playerPed != null && playerPed.IsAlive && player.IsPlaying)
                     {
-                        Vector3 vehPos = Vector3.Zero;                        
+                        Vector3 vehPos = Vector3.Zero;
                         int handle = 0;
                         string reg = "";
                         string model = "";
@@ -2463,13 +2676,13 @@ namespace LSlife
                                     }
                                 }
                             }
-                        }                        
+                        }
                         if (Game.Player != player)
                         {
                             player = Game.Player;
                             playerPed = Game.Player.Character;
                             UI.Notify("LS Life: Player Character changed");
-                        }                            
+                        }
                         if (attacker != null)
                         {
                             if (attacker.IsDead)
@@ -2477,57 +2690,43 @@ namespace LSlife
                                 RemovePedFromWorld(attacker, true);
                                 if (!attackerPickupSpawned)
                                 {
+                                    attackerAttacking = false;
                                     attackerPickupSpawned = true;
                                     attackerPickup = World.CreatePickup(PickupType.MoneyMedBag, attacker.Position, Vector3.Zero, new Model("prop_big_bag_01"), 100);
-                                    //foreach (XElement element in playerWeapons)
-                                    //{
-                                    //    if (element.Name == "weapon")
-                                    //    {
-                                    //        attackerWeapons.Add(element);
-                                    //        UI.Notify("added " + element.Name);
-                                    //    }
-                                    //}
                                 }
                                 attacker = null;
                             }
                             else
                             {
-                                float distance = attacker.Position.DistanceTo(playerPed.Position);
-                                if ( distance < 60)
-                                {                                   
-                                    if (!attackerAttacking)
+                                float distance = attacker.Position.DistanceTo(playerPed.Position);                                
+                                
+                                if (!attackerAttacking)
+                                {
+                                    if (Game.GameTime > rayTimer + 1000)
                                     {
-                                        if (distance < 10)
+                                        rayTimer = Game.GameTime;
+                                        //RaycastResult raycast = World.RaycastCapsule(attacker.Position + attacker.ForwardVector, playerPed.Position, 60, IntersectOptions.Everything);
+                                        if (distance < 60 && Function.Call<bool>(Hash.HAS_ENTITY_CLEAR_LOS_TO_ENTITY_IN_FRONT, attacker, playerPed))
                                         {
-
                                             attackerAttacking = true;
+                                            attacker.Task.ClearAll();
                                             attacker.Task.FightAgainst(playerPed);
+                                            
+                                            int EnemyRelationShipGroup = Function.Call<int>(Hash.GET_HASH_KEY, "HATES_PLAYER");
+                                            Function.Call(Hash.SET_PED_RELATIONSHIP_GROUP_HASH, attacker, EnemyRelationShipGroup);                                            
                                         }
                                         else
-                                        if (Game.GameTime > rayTimer + 1000)
                                         {
-                                            rayTimer = Game.GameTime;
-                                            RaycastResult raycast = World.RaycastCapsule(attacker.Position + attacker.ForwardVector, playerPed.Position, 60, IntersectOptions.Everything);
-                                            if (raycast.HitEntity == playerPed)
-                                            {
-                                                attackerAttacking = true;
-                                                attacker.Task.FightAgainst(playerPed);
-                                            }
+                                            attacker.Task.ClearAll();
+                                            attacker.Task.WanderAround();
+                                            attackerAttacking = false;
                                         }
-                                        
-                                    }
-                                    else
-                                    {
-                                        attackerAttacking = false;
-                                        attacker.Task.WanderAround();
-                                    }
-                                        
-                                    
+                                    }                                    
                                 }
                             }
-                        }                        
+                        }
                         if (drugCarDestroyed == false && drugCar == null)
-                        {                           
+                        {
                             if (playerPed.Position.DistanceTo(vehPos) <= 200)
                             {
                                 if (drugCarBlip != null)
@@ -2549,6 +2748,7 @@ namespace LSlife
                                         drugCar.IsPersistent = true;
                                         drugCar.EngineHealth = 1000;
                                         drugCar.Health = 1000;
+                                        drugCar.Repair();
                                         if (drugCar.CurrentBlip != null)
                                         {
                                             drugCar.CurrentBlip.Remove();
@@ -2584,6 +2784,7 @@ namespace LSlife
                                     if (playerWanted && drugCar.Handle == playerPed.CurrentVehicle.Handle && drugCarWanted == false)
                                     {
                                         drugCarWanted = true;
+                                        Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
                                         UI.Notify("Your storage vehicle has been identified.");
                                     }
                                     if (drugCarSaved == true && drugCar.Driver == playerPed)
@@ -2591,13 +2792,14 @@ namespace LSlife
                                         drugCarSaved = false;
                                         if (drugCar.IsInvincible == true)
                                         {
-                                            drugCar.IsInvincible = false;                                      
+                                            drugCar.IsInvincible = false;
                                         }
                                     }
                                 }
                                 if (!playerWanted && drugCarWanted)
                                 {
                                     drugCarWanted = false;
+                                    Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
                                     UI.Notify("Police are not longer after your storage vehicle.");
                                 }
                                 if (drugCarSaved == false && vehPos != drugCar.Position && !playerPed.IsInVehicle())
@@ -2641,9 +2843,9 @@ namespace LSlife
                                     }
                                     LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
                                     XDocument veh = XDocument.Load("scripts\\LSLife\\LSLife_Vehicles.xml");
-                                    foreach(XElement element in veh.Descendants())
+                                    foreach (XElement element in veh.Descendants())
                                     {
-                                        if(element.Name == "Destroyed")
+                                        if (element.Name == "Destroyed")
                                         {
                                             element.Value = drugCarDestroyed.ToString();
                                         }
@@ -2652,23 +2854,20 @@ namespace LSlife
                                 }
                             }
                         }
-                        if (TotalDrugsCarried >= 140 && !playerHasBag)
+                        if (!playerHasBag && (TotalDrugsCarried / 28) + playerWeps.Count + (player.Money/ 50000) > 15)
                         {
                             PedBag(playerPed, true);
                             playerHasBag = true;
-                            playerPed.MaxSpeed = 6f;
-                            
+                            Function.Call(Hash.SET_PLAYER_SPRINT, player, false);
                         }
-                        if (TotalDrugsCarried < 140 && playerHasBag)
+                        if (playerHasBag && (TotalDrugsCarried / 28) + playerWeps.Count + (player.Money / 50000) <= 15)
                         {
                             PedBag(playerPed, false);
                             playerHasBag = false;
-                            playerPed.MaxSpeed = 7f;
-                        }
+                            Function.Call(Hash.SET_PLAYER_SPRINT, player, true);
+                        }                        
                         if (player.WantedLevel > 0 && playerWanted == false) { playerWanted = true; }
-                        if (playerWanted && player.WantedLevel == 0) { playerWanted = false; }
-
-
+                        if (playerWanted && player.WantedLevel == 0) { playerWanted = false; }                       
                         if (drugCarDestroyed == false && drugCar != null && playerPed.Position.DistanceTo(drugCar.Position) > 200)
                         {
                             if (drugCar.Exists())
@@ -2698,7 +2897,7 @@ namespace LSlife
                                     drugCar = null;
                                 }
                             }
-                            
+
 
                         }
                         if (drugCarDestroyed == false && drugCar == null && drugCarBlip == null)
@@ -2765,7 +2964,7 @@ namespace LSlife
                                 jobs.Clear();
                             }
                         }
-                        if (isDealing == false)
+                        if (!isDealing)
                         {
                             if (ratChance != -100)
                             {
@@ -2774,13 +2973,18 @@ namespace LSlife
                         }
                         if (isDealing)
                         {
-                            if (dealer1Money > 50000 && Game.GameTime > jobOfferTimer + 30000 && jobs.ToList().Count == 0)
+                            if (dealer1Debt < 110000 && TotalDrugsCarried > 56 && Game.GameTime > jobOfferTimer + 20000 && jobs.ToList().Count == 0)
                             {
                                 jobOfferTimer = Game.GameTime;
                                 int r = rnd.Next(0, 100);
                                 if (r > 70)
                                 {
-                                    Vector3 spawnPos = GenerateSpawnPos(playerPed.Position.Around(300f), Nodetype.Offroad, true);
+                                    Vector3 spawnPos = GenerateSpawnPos(playerPed.Position.Around(300f), Nodetype.Offroad, true);                                    
+                                    if (spawnPos == Vector3.Zero)
+                                    {
+                                        if(DEBUG) { UI.Notify("spawning new job, that one guy was found."); }
+                                        spawnPos = GenerateSpawnPos(playerPed.Position.Around(200f), Nodetype.Offroad, true);
+                                    }
                                     var peds = World.GetNearbyPeds(playerPed.Position, 300f);
                                     var pedsList = peds.ToList();
                                     if (pedsList.Count > 0)
@@ -2790,16 +2994,17 @@ namespace LSlife
                                             if (!p.IsPlayer && p.IsHuman)
                                             {
                                                 r = rnd.Next(0, 10);
-                                                if (r > 5)
+                                                if (r > 3)
                                                 {
                                                     Ped newPed = World.CreatePed(p.Model, spawnPos);
+                                                    if (DEBUG) { UI.Notify("jobPos:" + spawnPos + " pedPos:" + newPed.Position); }
                                                     if (newPed != null)
                                                     {
                                                         jobs.Add(new Customer(newPed, spawnPos, 50, true, null));
                                                         if (jobs.Count > 0)
                                                         {
                                                             Customer c = jobs[0];
-                                                            UI.Notify("Yo can you go drop " + c.amount + "g of " + c.drug + " to my pal for $" + c.amount * c.price + "?");
+                                                            UI.Notify("Yo can you go drop ~g~" + c.amount + "~w~g of ~g~" + c.drug + " ~w~to my pal for $~g~" + c.amount * c.price + "~w~?");
                                                             Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
                                                             jobAcceptTimer = Game.GameTime;
                                                             jobOffer = true;
@@ -2874,11 +3079,11 @@ namespace LSlife
                             }
                         }
                     }
-                }       
+                }
 
                 // if we alive do this stuff each Tick.
                 if (playerPed != null && playerPed.IsAlive && player.IsPlaying)
-                {                    
+                {
                     if (drugCar != null)
                     {
                         if (drugCar.Exists())
@@ -2966,13 +3171,13 @@ namespace LSlife
                                         }
                                     }
                                 }
-                            }                            
+                            }
                         }
                     }
-                    
-                    Housing();                    
+
+                    Housing();
                     //Buying Drugs
-                                      
+
                     if (drugDealer1 != null && readyToDeal)
                     {
                         if (Game.IsControlJustPressed(2, GTA.Control.Context) && !LsMenuPool.IsAnyMenuOpen())
@@ -3010,7 +3215,7 @@ namespace LSlife
                         if (removedStuff == true)
                         {
                             removedStuff = false;
-                        }                        
+                        }
                         if (jobs.Count > 0 && jobs[0] != null && !LsMenuPool.IsAnyMenuOpen())
                         {
                             if (jobOffer)
@@ -3040,6 +3245,15 @@ namespace LSlife
                                     jobAccepted = true;
                                     Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
                                     UI.Notify("Cool, Sent you a ping.");
+                                    if(PlayerInventory[jobs[0].drug] >= jobs[0].amount)
+                                    {
+                                        UI.ShowSubtitle("Deliver ~g~" + jobs[0].amount + "~w~g of ~g~" + jobs[0].drug + "~w~ to ~y~" + World.GetStreetName(jobs[0].Ped.Position) + ".", 10000);
+                                    }
+                                    else
+                                    {
+                                        UI.ShowSubtitle("You do not have enough ~g~" + jobs[0].drug + "~w~ go get ~g~" + jobs[0].amount + "~w~g and deliver it to ~y~" + World.GetStreetName(jobs[0].Ped.Position) + ".", 10000);
+                                    }
+                                    
                                 }
                                 if (Game.GameTime > jobAcceptTimer + 15000)
                                 {
@@ -3125,7 +3339,7 @@ namespace LSlife
                         }
 
                         //Get rid of or decide if old ped is angry
-                        if (oldCustomers.ToList().Count > 0)
+                        if (oldCustomers.ToList().Count > 0 && Game.GameTime > lastAngryTime + 10000)
                         {
                             for (var i = 0; i < oldCustomers.Count; i++)
                             {
@@ -3143,30 +3357,42 @@ namespace LSlife
                                 }
                                 if (ped != null && ped.IsDead)
                                 {
+                                    RemovePedFromWorld(ped, false);
                                     oldCustomers.RemoveAt(i);
                                     break;
                                 }
-                                if (ped != null && ped.IsAlive)
+                                if (ped != null && ped.IsAlive && ped.Position.DistanceTo(playerPed.Position) < 30)
                                 {
-                                    int anger = rnd.Next(0, 100);
-                                    if (anger > 83 + wealth && Game.GameTime > lastAngryTime + 10000)
-                                    {
-                                        if (ped.Gender.Equals(Gender.Male))
-                                        {
-                                            ped.CanSwitchWeapons = true;
-                                            ped.Weapons.Give(WeaponHash.Bat, 1, true, false);
-                                            ped.Weapons.Select(ped.Weapons.BestWeapon);           
-                                            ped.Task.FightAgainst(playerPed);
-                                            lastAngryTime = Game.GameTime;
-
-                                            oldCustomers.Remove(ped);
-                                            angryPeds.Add(ped);
-                                        }
-                                    }
-                                    if (anger < 86 + wealth && Game.GameTime > lastAngryTime + 10000)
+                                    if (ped.Gender.Equals(Gender.Male))
                                     {
                                         lastAngryTime = Game.GameTime;
-                                    }
+                                        int anger = rnd.Next(0, 100);
+                                        if (anger > (85 + wealth))
+                                        {
+                                            if (DEBUG)
+                                            {
+                                                UI.Notify("Ped angry:" + anger + ">" + (85 + wealth));
+                                            }
+                                            int EnemyRelationShipGroup = Function.Call<int>(Hash.GET_HASH_KEY, "HATES_PLAYER");
+                                            Function.Call(Hash.SET_PED_RELATIONSHIP_GROUP_HASH, attacker, EnemyRelationShipGroup);
+                                            ped.CanSwitchWeapons = true;
+                                            int n = rnd.Next(0, 3);
+                                            if (n == 2)
+                                            {
+                                                ped.Weapons.Give(WeaponHash.Bat, 1, true, false);
+                                            }
+                                            if (n == 3)
+                                            {
+                                                ped.Weapons.Give(WeaponHash.Pistol, 100, true, true);
+                                            }                                            
+                                            ped.Weapons.Select(ped.Weapons.BestWeapon);
+                                            ped.AddBlip();
+                                            ped.CurrentBlip.IsFriendly = false;
+                                            oldCustomers.Remove(ped);
+                                            angryPeds.Add(ped);
+                                            break;
+                                        }
+                                    }                                                                                                            
                                 }
                             }
                         }
@@ -3179,9 +3405,9 @@ namespace LSlife
                                 int getPed = rnd.Next(0, 100);
                                 if (getPed > 65)
                                 {
-                                    
+
                                     Vector3 playerPos = Game.Player.Character.Position;
-                                    foreach (Ped p in World.GetAllPeds())
+                                    foreach (Ped p in World.GetNearbyPeds(Game.Player.Character, 80f))
                                     {
                                         if (p.IsHuman && !p.IsPlayer && p.IsAlive)
                                         {
@@ -3198,7 +3424,7 @@ namespace LSlife
                                                     {
                                                         if (angryPeds.ToList().FindAll(r => r.Handle == p.Handle).Count == 0)
                                                         {
-                                                            if (p.CurrentPedGroup != playerPed.CurrentPedGroup)
+                                                            if (p.CurrentPedGroup != Game.Player.Character.CurrentPedGroup)
                                                             {
                                                                 if (p.IsInVehicle() && p.CurrentVehicle.Driver == p)
                                                                 {
@@ -3210,8 +3436,8 @@ namespace LSlife
                                                                 {
                                                                     customers.Add(new Customer(p, playerPos, wealth, false, null));
                                                                     break;
-                                                                }                                                                
-                                                            }                                                            
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -3225,48 +3451,54 @@ namespace LSlife
                         if (customers.Count > 0)
                         {
                             if (Game.GameTime > lastCustomerCheckTimer + 370)
-                            {                                
+                            {
                                 foreach (Customer c in customers)
                                 {
                                     if (c != null)
                                     {
                                         if (c.Ped.Exists() && c.Ped.IsAlive && !c.Ped.IsPlayer)
                                         {
-                                            if (c.Ped.Position.DistanceTo(playerPed.Position) > 60f)
+                                            if (c.Ped.Position.DistanceTo(playerPed.Position) > 80f)
                                             {
                                                 customers.Remove(c);
                                                 RemovePedFromWorld(c.Ped, true);
                                                 break;
                                             }
-                                            if (c.Ped.CurrentPedGroup != playerPed.CurrentPedGroup && c.Ped.Position.DistanceTo(playerPed.Position) > 3f)
+                                            if (c.Ped.CurrentPedGroup != playerPed.CurrentPedGroup && c.Ped.Position.DistanceTo(playerPed.Position) > 4f)
                                             {
                                                 if (c.Ped.IsInVehicle())
                                                 {
-                                                    c.Ped.Task.PerformSequence(PerformTaskSeq(2, c.Ped.CurrentVehicle));                                                    
+                                                    c.Ped.Task.PerformSequence(PerformTaskSeq(2, c.Ped.CurrentVehicle));
                                                     lastCustomerCheckTimer = Game.GameTime;
                                                 }
                                                 else
                                                 {
-                                                    if (c.Target != playerPed.Position)
+                                                    Vector3 playerPos = Game.Player.Character.Position;
+                                                    Vector3 playerForward = Game.Player.Character.ForwardVector;
+                                                    Vector3 playerRight = Game.Player.Character.RightVector;                                                                                                                                 
+                                                    if (Game.Player.Character.IsInVehicle())
                                                     {
-                                                        c.Target = playerPed.Position;
-                                                        MoveCustomer(c, c.Target);
-                                                        //c.Ped.Task.PerformSequence(PerformTaskSeq(2, c.Ped.CurrentVehicle));
-                                                        lastCustomerCheckTimer = Game.GameTime;
+                                                        MoveCustomer(c, playerPos + (playerRight * 2));
                                                     }
+                                                    else
+                                                    {
+                                                        MoveCustomer(c, playerPos + (playerForward * 2));
+                                                    }
+                                                    
+                                                    lastCustomerCheckTimer = Game.GameTime;
                                                 }
                                             }
                                         }
                                     }
                                 }
-                            }                            
+                            }
                             foreach (Customer c in customers)
                             {
                                 if (c != null)
                                 {
                                     if (c.Ped.Exists() == true && c.Ped.IsAlive && !c.Ped.IsPlayer)
                                     {
-                                        
+
                                         if (c.Ped.CurrentPedGroup != playerPed.CurrentPedGroup && c.Ped.Position.DistanceTo(playerPed.Position) <= 3f)
                                         {
                                             c.Ped.Task.ClearAll();
@@ -3332,17 +3564,33 @@ namespace LSlife
                         }
                         if (Game.GameTime > ratTimer + 1000)
                         {
+                            if (ratChance <= 0f)
+                            {
+                                if (heatBar.Percentage != 0f) { heatBar.Percentage = 0f; }
+                            }
+                            else
+                            {                                
+                                if (heatBar.Percentage < 1) { heatBar.Percentage = ((float)ratChance / 100).Clamp(0,1); }
+                            }
                             timeDealing = Game.GameTime - timeStartedDealing;
                             thisStreet = World.GetStreetName(new Vector2(playerPed.Position.X, playerPed.Position.Y));
                             ratTimer = Game.GameTime;
                             rat = rnd.Next(0, 1000);
-                            if (thisStreet == lastStreet && rat < ratChance + (timeDealing / 60000) && timeDealing > 60000)
+                            if (thisStreet == lastStreet && rat < ratChance + (timeDealing / 60000) && timeDealing > 10000)
                             {
                                 UI.Notify("Someone ratted on you.");
                                 Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
                                 player.WantedLevel = 2;
                                 isDealing = false;
                                 ratChance = 0;
+                                foreach (KeyValuePair<string, int> area in areaHeat.ToList())
+                                {
+                                    if (area.Key == World.GetZoneNameLabel(playerPed.Position))
+                                    {
+                                        areaHeat[area.Key] += 1000;
+                                    }
+                                }
+
                             }
 
                             if (thisStreet != lastStreet)
@@ -3359,31 +3607,26 @@ namespace LSlife
                                 {
                                     if (ratChance > -100)
                                     {
-
                                         ratChance--;
-                                        ratChance += timeDealing / 180000;
-                                        if (ratChance <= 0f)
-                                        {
-                                            if (heatBar.Percentage != 0f) { heatBar.Percentage = 0f; }
-                                        }
-                                        else
-                                        {
-                                            if (heatBar.Percentage > 0f) { heatBar.Percentage -= 0.1f; }
-                                        }
-
-
+                                        ratChance += timeDealing / 180000;                                        
                                     }
-
                                 }
                                 else
                                 {
                                     if (ratChance < 100)
                                     {
-                                        if (wealth == 1) { ratChance += wealth + (timeDealing / 60000); }
-                                        else { ratChance += (wealth / 2) + (timeDealing / 60000); }
+                                        int aheat = 0;                                        
+                                        string playerArea = World.GetZoneNameLabel(playerPed.Position);
+                                        if (areaHeat.ContainsKey(playerArea))
+                                        {
+                                            areaHeat.TryGetValue(playerArea, out aheat);
+                                        }
+
+                                        if (wealth == 1) { ratChance += wealth + (timeDealing / 60000) + (aheat/100); }
+                                        else { ratChance += (wealth / 2) + (timeDealing / 60000) + (aheat/100); }
                                         if (ratChance > 0)
                                         {
-                                            if (heatBar.Percentage < 1f) { heatBar.Percentage += 0.1f; }
+                                            areaHeat[playerArea] += 1;
                                         }
                                     }
                                 }
@@ -3421,6 +3664,7 @@ namespace LSlife
                                         wepDealer.vehicle.IsInvincible = true;
                                         wepDealer.ped.Task.ClearAll();
                                         wepDealer.ped.Task.DriveTo(wepDealer.vehicle, wepDealer.destination, 1, 40f, (int)DrivingStyle.SometimesOvertakeTraffic);
+                                        Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
                                         UI.Notify("Leaving.");
                                         //Function.Call(Hash.SET_WAYPOINT_OFF);
 
@@ -3430,6 +3674,7 @@ namespace LSlife
                                 {
                                     if (wepDealer.vehicle.Position.DistanceTo(wepDealer.destination) < 10)
                                     {
+                                        Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
                                         UI.Notify("Arived.");
                                         wepDealer.destination = Vector3.Zero;
                                         wepDealer.isDriving = false;
@@ -3601,10 +3846,12 @@ namespace LSlife
                         if (e.Name == "Health")
                         {
                             Int32.TryParse(e.Value, out health);
+                            if (health < 100) { health = 1000; }
                         }
                         if (e.Name == "EngineHealth")
                         {
-                            Int32.TryParse(e.Value, out engineHealth);                            
+                            Int32.TryParse(e.Value, out engineHealth);
+                            if (engineHealth < 100) { engineHealth = 1000; }
                         }
                         if (e.Name == "WheelType")
                         {
@@ -3646,69 +3893,73 @@ namespace LSlife
                 }
             }
             drugCar = World.CreateVehicle(new Model(drugCarModel), drugCarPos, drugCarHead);
-            drugCar.InstallModKit();
-            if (DEBUG)
+            Wait(10);
+            if (drugCar != null)
             {
-                UI.Notify("" + drugCarModel + " | " + drugCarPos + " | " + playerPed.Position);
-            }
-            drugCar.PrimaryColor = drugCarPriCol;
-            drugCar.SecondaryColor = drugCarSecCol;
-            drugCar.Health = health;
-            drugCar.EngineHealth = engineHealth;
-            drugCar.WheelType = wheelType;
-            drugCar.EngineRunning = true;
-            drugCar.IsInvincible = true;
-            drugCar.CanTiresBurst = canTiresBurst;
-            drugCar.NumberPlateType = plateType;
-            drugCar.NumberPlate = plate;
-            drugCar.WindowTint = tint;
-            drugCar.DirtLevel = dirt;
-            drugCar.FuelLevel = fuel;
-            drugCar.IsPersistent = true;
-            drugCar.RimColor = rimCol;
-            if (drugCar.CurrentBlip != null)
-            {
-                drugCar.CurrentBlip.Remove();
-            }
-            drugCar.AddBlip();
-            drugCar.CurrentBlip.IsShortRange = true;
-            drugCar.CurrentBlip.IsFriendly = true;
-            drugCar.CurrentBlip.Sprite = BlipSprite.PersonalVehicleCar;
-            drugCar.CurrentBlip.Name = "Drug Car";
-            drugCar.CurrentBlip.Color = BlipColor.Green;
-            foreach (XElement veh in vehiclesXML.Descendants())
-            {
-                if (veh.Name == "Mods")
+                drugCar.InstallModKit();
+                if (DEBUG)
                 {
-                    foreach (XElement m in veh.Elements())
+                    UI.Notify("" + drugCarModel + " | " + drugCarPos + " | " + playerPed.Position);
+                }
+                drugCar.PrimaryColor = drugCarPriCol;
+                drugCar.SecondaryColor = drugCarSecCol;
+                drugCar.Health = health;
+                drugCar.EngineHealth = engineHealth;
+                drugCar.WheelType = wheelType;
+                drugCar.EngineRunning = true;
+                drugCar.IsInvincible = true;
+                drugCar.CanTiresBurst = canTiresBurst;
+                drugCar.NumberPlateType = plateType;
+                drugCar.NumberPlate = plate;
+                drugCar.WindowTint = tint;
+                drugCar.DirtLevel = dirt;
+                drugCar.FuelLevel = fuel;
+                drugCar.IsPersistent = true;
+                drugCar.RimColor = rimCol;
+                drugCar.Repair();
+                if (drugCar.CurrentBlip != null)
+                {
+                    drugCar.CurrentBlip.Remove();
+                }
+                drugCar.AddBlip();
+                drugCar.CurrentBlip.IsShortRange = true;
+                drugCar.CurrentBlip.IsFriendly = true;
+                drugCar.CurrentBlip.Sprite = BlipSprite.PersonalVehicleCar;
+                drugCar.CurrentBlip.Name = "Drug Car";
+                drugCar.CurrentBlip.Color = BlipColor.Green;
+                foreach (XElement veh in vehiclesXML.Descendants())
+                {
+                    if (veh.Name == "Mods")
                     {
-                        if (m.Name == "FrontWheels")
+                        foreach (XElement m in veh.Elements())
                         {
-                            Enum.TryParse<VehicleMod>(m.Name.ToString(), out VehicleMod mod);
-                            Int32.TryParse(m.Value, out int val);
-                            drugCar.SetMod(mod, val, customTire);
-                            drugCar.RimColor = rimCol;
+                            if (m.Name == "FrontWheels")
+                            {
+                                Enum.TryParse<VehicleMod>(m.Name.ToString(), out VehicleMod mod);
+                                Int32.TryParse(m.Value, out int val);
+                                drugCar.SetMod(mod, val, customTire);
+                                drugCar.RimColor = rimCol;
+                            }
+                            else
+                            {
+                                Enum.TryParse<VehicleMod>(m.Name.ToString(), out VehicleMod mod);
+                                Int32.TryParse(m.Value, out int val);
+                                drugCar.SetMod(mod, val, false);
+                            }
+
                         }
-                        else
-                        {
-                            Enum.TryParse<VehicleMod>(m.Name.ToString(), out VehicleMod mod);
-                            Int32.TryParse(m.Value, out int val);
-                            drugCar.SetMod(mod, val, false);
-                        }
-                                                                                           
                     }
-                }                
-                if (veh.Name == "ToggleMods")
-                {
-                    foreach (XElement t in veh.Elements())
+                    if (veh.Name == "ToggleMods")
                     {
-                        Enum.TryParse<VehicleToggleMod>(t.Name.ToString(), out VehicleToggleMod toggleMod);
-                        bool.TryParse(t.Value, out bool toggle);
-                        drugCar.ToggleMod(toggleMod, toggle);
+                        foreach (XElement t in veh.Elements())
+                        {
+                            Enum.TryParse<VehicleToggleMod>(t.Name.ToString(), out VehicleToggleMod toggleMod);
+                            bool.TryParse(t.Value, out bool toggle);
+                            drugCar.ToggleMod(toggleMod, toggle);
+                        }
                     }
                 }
-            }
-
+            }            
         }
 
         void onKeyDown(object sender, KeyEventArgs e)
@@ -3732,7 +3983,7 @@ namespace LSlife
                     }
                     VehicleSave(playerPed.CurrentVehicle);
                     Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
-                    UI.Notify("" + drugCar.Model + " is now youre Stash Vehicle");
+                    UI.Notify("" + drugCar.DisplayName + " is now youre Stash Vehicle.");
                 }
                 if (!playerPed.IsInVehicle())
                 {
@@ -3759,28 +4010,30 @@ namespace LSlife
             {
                 if(DEBUG)
                 {
-                    float ground = World.GetGroundHeight(playerPed.Position);
-                    //UI.Notify("" + Function.Call<bool>(Hash.IS_POINT_ON_ROAD, playerPed.Position.X, playerPed.Position.Y, playerPed.Position.Z));
-                    if (!attackerPickupSpawned)
-                    {
-                        int drugs = 0;
-                        attackerPickupSpawned = true;
-                        attackerPickup = World.CreatePickup(PickupType.MoneyMedBag, playerPed.Position + (playerPed.ForwardVector * 2), Vector3.Zero, new Model("prop_big_bag_01"), 100);
-                        foreach(XElement element in playerWeapons)
-                        {
-                            if (element.Name == "weapon")
-                            {
-                                attackerWeapons.Add(element);
-                                UI.Notify("added " + element.Name);
-                            }
-                        }
-                        foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                        {
-                            attackerInventory.Add(entry.Key, entry.Value);
-                            drugs += entry.Value;
-                        }
-                        UI.Notify("drugs = " + drugs);
-                    }
+                    int currentInventorySize = (player.Money / 50000) + playerWeps.Count + (TotalDrugsCarried / 28);
+                    UI.Notify("Total inventory size " + currentInventorySize);
+                    //float ground = World.GetGroundHeight(playerPed.Position);
+                    ////UI.Notify("" + Function.Call<bool>(Hash.IS_POINT_ON_ROAD, playerPed.Position.X, playerPed.Position.Y, playerPed.Position.Z));
+                    //if (!attackerPickupSpawned)
+                    //{
+                    //    int drugs = 0;
+                    //    attackerPickupSpawned = true;
+                    //    attackerPickup = World.CreatePickup(PickupType.MoneyMedBag, playerPed.Position + (playerPed.ForwardVector * 2), Vector3.Zero, new Model("prop_big_bag_01"), 100);
+                    //    foreach(XElement element in playerWeapons)
+                    //    {
+                    //        if (element.Name == "weapon")
+                    //        {
+                    //            attackerWeapons.Add(element);
+                    //            UI.Notify("added " + element.Name);
+                    //        }
+                    //    }
+                    //    foreach (KeyValuePair<string, int> entry in PlayerInventory)
+                    //    {
+                    //        attackerInventory.Add(entry.Key, entry.Value);
+                    //        drugs += entry.Value;
+                    //    }
+                    //    UI.Notify("drugs = " + drugs);
+                    //}
                 }
             }
                 
@@ -4027,19 +4280,25 @@ namespace LSlife
                     World.DrawMarker(MarkerType.VerticalCylinder, new Vector3(-112.616f, -1479.229f, 36f), Vector3.Zero, Vector3.Zero, new Vector3(1f, 1f, 1f), Color.Green);
                     if (playerPed.Position.DistanceTo(houseTeleOut) < 1f)
                     {
-                        DisplayHelpText("Press ~INPUT_CONTEXT~ to enter Safehouse.");
+                        if(Game.GameTime > displayHelpTimer + 3000)
+                        {
+                            displayHelpTimer = Game.GameTime;
+                            DisplayHelpText("Press ~INPUT_CONTEXT~ to enter Safehouse.");
+                        }
+                        if (Game.IsControlJustReleased(2, GTA.Control.Context))
+                        {
+                            playerPed.FreezePosition = true;
+                            Game.FadeScreenOut(300);
+                            Script.Wait(300);
+                            playerPed.Position = houseTeleIn;
+                            Script.Wait(300);
+                            playerPed.FreezePosition = false;
+                            Game.FadeScreenIn(300);
+                            isAtHome = true;
+                        }
+
                     }
-                    if (Game.IsControlJustReleased(2, GTA.Control.Context) && playerPed.Position.DistanceTo(houseTeleOut) < 2f)
-                    {
-                        playerPed.FreezePosition = true;
-                        Game.FadeScreenOut(300);
-                        Script.Wait(300);
-                        playerPed.Position = houseTeleIn;
-                        Script.Wait(300);
-                        playerPed.FreezePosition = false;
-                        Game.FadeScreenIn(300);
-                        isAtHome = true;
-                    }
+                    
                 }
             }
             if (isAtHome == true)
@@ -4060,25 +4319,34 @@ namespace LSlife
 
                 }
 
-                if (playerPed.Position.DistanceTo(houseTeleIn) < 1f)
+                if (!LsMenuPool.IsAnyMenuOpen() && playerPed.Position.DistanceTo(houseTeleIn) < 1f)
                 {
-                    DisplayHelpText("Press ~INPUT_CONTEXT~ to exit Safehouse.");
+                    if (Game.GameTime > displayHelpTimer + 3000)
+                    {
+                        displayHelpTimer = Game.GameTime;
+                        DisplayHelpText("Press ~INPUT_CONTEXT~ to exit Safehouse.");
+                    }
+                    if (Game.IsControlJustReleased(2, GTA.Control.Context))
+                    {
+                        playerPed.FreezePosition = true;
+                        Game.FadeScreenOut(600);
+                        Script.Wait(600);
+                        playerPed.Position = houseTeleOut;
+                        Script.Wait(300);
+                        playerPed.FreezePosition = false;
+                        Game.FadeScreenIn(300);
+                        isAtHome = false;
+                    }
                 }
-                if (Game.IsControlJustReleased(2, GTA.Control.Context) && playerPed.Position.DistanceTo(houseTeleIn) < 2f)
+                
+                if (!LsMenuPool.IsAnyMenuOpen() && playerPed.Position.DistanceTo(houseStash) < 1f )
                 {
-                    playerPed.FreezePosition = true;
-                    Game.FadeScreenOut(600);
-                    Script.Wait(600);
-                    playerPed.Position = houseTeleOut;
-                    Script.Wait(300);
-                    playerPed.FreezePosition = false;
-                    Game.FadeScreenIn(300);
-                    isAtHome = false;
-                }
-                if (playerPed.Position.DistanceTo(houseStash) < 1f)
-                {
-                    DisplayHelpText("Press ~INPUT_CONTEXT~ to open stash.");
-                    if (Game.IsControlJustReleased(2, GTA.Control.Context) && !LsMenuPool.IsAnyMenuOpen())
+                    if (Game.GameTime > displayHelpTimer + 3000)
+                    {
+                        displayHelpTimer = Game.GameTime;
+                        DisplayHelpText("Press ~INPUT_CONTEXT~ to open stash.");
+                    }                        
+                    if (Game.IsControlJustReleased(2, GTA.Control.Context))
                     {
                         UpdateInventory();
                         stashMainMenu.Visible = !stashMainMenu.Visible;
@@ -4223,8 +4491,19 @@ namespace LSlife
                 ped.Task.ClearAll();
             }            
             ped.MarkAsNoLongerNeeded();
-            ped.BlockPermanentEvents = true;
+            ped.BlockPermanentEvents = false;
             ped.IsPersistent = false;
+        }
+
+        public enum DayGTA
+        {
+            Sunday = 0,
+            Monday = 1,
+            Tuesday = 2,
+            Wednesday = 3,
+            Thursday = 4,
+            Friday = 5,
+            Saturday = 6
         }
 
         void DateTimeUpdate()
@@ -4235,7 +4514,7 @@ namespace LSlife
                 hour = Function.Call<int>(Hash.GET_CLOCK_HOURS);
                 if (dealer1Weed == 0 || dealer1Crack == 0 || dealer1Cocain == 0)
                 {
-                    if (!dealer1ReloadOrder)
+                    if (!dealer1ReloadOrder && !dealer1Reloaded)
                     {
                         dealer1ReloadOrder = true;
                         if (day == 6)
@@ -4246,15 +4525,15 @@ namespace LSlife
                         {
                             dealer1ReloadDay = day + 1;
                         }
-                        UI.Notify("Zee has ordered a reload, will take about a day.");
+                        Enum.TryParse<DayGTA>(dealer1ReloadDay.ToString(), out DayGTA dDay);
+                        UI.Notify("Zee has ordered a reload, should come " + dDay.ToString()+".");
                         Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
                     }
                 }
 
             }
             if (Function.Call<int>(Hash.GET_CLOCK_DAY_OF_WEEK) != day)
-            {
-                
+            {                
                 day = Function.Call<int>(Hash.GET_CLOCK_DAY_OF_WEEK);
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 if (day != dealer1ReloadDay && dealer1Reloaded)
@@ -4279,6 +4558,7 @@ namespace LSlife
                 if (dealer1Weed > 0)
                 {
                     dealer1Weed -= 10;
+                    dealer1Money += weed1Price * 10;
                     foreach (XElement element in LSLifeSave.Descendants())
                     {
                         if (element.Name == "dealer1")
@@ -4289,6 +4569,10 @@ namespace LSlife
                                 {
                                     drugCarEle.Value = dealer1Weed.ToString();
                                 }
+                                if (drugCarEle.Name == "money")
+                                {
+                                    drugCarEle.Value = dealer1Money.ToString();
+                                }
                             }
                         }
                     }
@@ -4296,6 +4580,7 @@ namespace LSlife
                 if (dealer1Crack > 0)
                 {
                     dealer1Crack -= 1;
+                    dealer1Money += crack1Price * 1;
                     foreach (XElement element in LSLifeSave.Descendants())
                     {
                         if (element.Name == "dealer1")
@@ -4306,6 +4591,10 @@ namespace LSlife
                                 {
                                     drugCarEle.Value = dealer1Crack.ToString();
                                 }
+                                if (drugCarEle.Name == "money")
+                                {
+                                    drugCarEle.Value = dealer1Money.ToString();
+                                }
                             }
                         }
                     }
@@ -4313,6 +4602,7 @@ namespace LSlife
                 if (dealer1Cocain > 0)
                 {
                     dealer1Cocain -= 1;
+                    dealer1Money += cocain1Price * 1;
                     foreach (XElement element in LSLifeSave.Descendants())
                     {
                         if (element.Name == "dealer1")
@@ -4322,6 +4612,10 @@ namespace LSlife
                                 if (drugCarEle.Name == "cocain")
                                 {
                                     drugCarEle.Value = dealer1Cocain.ToString();
+                                }
+                                if (drugCarEle.Name == "money")
+                                {
+                                    drugCarEle.Value = dealer1Money.ToString();
                                 }
                             }
                         }
@@ -4333,13 +4627,49 @@ namespace LSlife
             {
                 dealer1ReloadOrder = false;
                 dealer1Reloaded = true;
+                
                 if (dealer1Debt > 0)
                 {
-                    dealer1Debt += dealer1Debt / 4;
-                }                
-                if (dealer1Weed < 20) { dealer1Weed += 20; }
-                if (dealer1Crack < 4) { dealer1Crack += 4; }
-                if (dealer1Cocain < 2) { dealer1Cocain += 2; }
+                    float intrest = (float)0.05;
+                    float intrestAmount = (float)dealer1Debt * intrest;
+                    dealer1Debt += (int)intrestAmount;
+                    UI.Notify("Zee added $"+(int)intrestAmount+" to your bill, its now $" +dealer1Debt);
+                    Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
+                }
+                if (dealer1Money < 10000)
+                {
+                    dealer1Money = 50000;
+                }
+                float weedMoney = 0;
+                float crackMoney = 0;
+                float cocainMoney = 0;
+                if (dealer1Weed < 40)
+                {
+                    weedMoney = (float)dealer1Money * 0.75f;
+                    dealer1Money -= (int)weedMoney;
+                }
+                if (dealer1Crack < 40)
+                {
+                    crackMoney = (float)dealer1Money * 0.6f;
+                    dealer1Money -= (int)crackMoney;
+                }
+                if (dealer1Cocain < 40)
+                {
+                    cocainMoney = dealer1Money;
+                    dealer1Money -= (int)cocainMoney;
+                }
+                int finalWeed = (int)weedMoney / (weed1Price/2);
+                int finalCrack = (int)crackMoney / (crack1Price/2);
+                int finalCocain = (int)cocainMoney / (cocain1Price/2);
+                dealer1Weed += finalWeed;
+                dealer1Crack += finalCrack;
+                dealer1Cocain += finalCocain;
+                weedMoney -= finalWeed * (weed1Price/2);
+                crackMoney -= finalCrack * (crack1Price/2);
+                cocainMoney -= finalCocain * (cocain1Price/2);
+                dealer1Money += (int)weedMoney + (int)crackMoney + (int)cocainMoney;
+                UI.Notify("Zees runner Reloaded.");
+                if(DEBUG) { UI.Notify("Weed:" + finalWeed + " Crack:" + finalCrack + " Cocain:" + finalCocain); }
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
                 {
@@ -4375,7 +4705,7 @@ namespace LSlife
                     }
                 }
                 LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                UI.Notify("Zees runner Reloaded.");
+                
                 Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
             }
         }
@@ -4391,18 +4721,30 @@ namespace LSlife
             }            
             if (index == 1)
             {
-                TaskSequence walkToVehicleDrive = new TaskSequence();
-                walkToVehicleDrive.AddTask.GoTo(vehicle.Position + new Vector3(0,-5, 0));
+                TaskSequence walkToVehicleDrive = new TaskSequence();                
+                walkToVehicleDrive.AddTask.GoTo(vehicle.Position + ((vehicle.RightVector*2) * -1));
                 walkToVehicleDrive.AddTask.EnterVehicle(vehicle, VehicleSeat.Driver);
-                walkToVehicleDrive.AddTask.CruiseWithVehicle(vehicle, 30f, (int)DrivingStyle.Normal);
-                walkToVehicleDrive.AddTask.ClearAll();
+                walkToVehicleDrive.AddTask.CruiseWithVehicle(vehicle, 20f, (int)DrivingStyle.SometimesOvertakeTraffic);
+                //walkToVehicleDrive.AddTask.ClearAll();
                 return walkToVehicleDrive;                
             }            
             if ( index == 2)
             {
+                Vector3 playerPos = Game.Player.Character.Position;
+                Vector3 playerForward = Game.Player.Character.ForwardVector;
+                Vector3 playerRight = Game.Player.Character.RightVector;
                 TaskSequence driveToPlayerAndExit = new TaskSequence();
-                driveToPlayerAndExit.AddTask.DriveTo(vehicle, Game.Player.Character.Position, 10f, 20f, (int)DrivingStyle.Normal);
-                driveToPlayerAndExit.AddTask.GoTo(Game.Player.Character.Position);
+                driveToPlayerAndExit.AddTask.ClearAllImmediately();
+                driveToPlayerAndExit.AddTask.DriveTo(vehicle, World.GetNextPositionOnStreet(Game.Player.Character.Position), 10f, 20f, (int)DrivingStyle.SometimesOvertakeTraffic);
+                if(Game.Player.Character.IsInVehicle())
+                {
+                    driveToPlayerAndExit.AddTask.GoTo(playerPos+(playerRight*3));
+                }
+                else
+                {
+                    driveToPlayerAndExit.AddTask.GoTo(playerPos+(playerForward*2));
+                }
+                
                 return driveToPlayerAndExit;                
             }            
             else
@@ -4412,22 +4754,22 @@ namespace LSlife
         }
 
         void MoveCustomer(Customer c, Vector3 target)
-        {                             
-            if (c.Ped.Position.DistanceTo(playerPed.Position) > 20)
+        {
+            if (Function.Call<bool>(Hash.IS_POINT_ON_ROAD, c.Ped.Position.X, c.Ped.Position.Y, c.Ped.Position.Z))
             {
-                if (Function.Call<bool>(Hash.IS_POINT_ON_ROAD, c.Ped.Position.X, c.Ped.Position.Y, c.Ped.Position.Z))
+                c.Ped.Task.RunTo(target);
+            }
+            else
+            {
+                if (c.Ped.Position.DistanceTo(playerPed.Position) > 8)
                 {
                     c.Ped.Task.RunTo(target);
                 }
                 else
                 {
                     c.Ped.Task.GoTo(target);
-                }
-            }
-            else
-            {
-                c.Ped.Task.GoTo(target);
-            }      
+                }                
+            }                  
         }
 
         void MakeStreetSale(Customer c, bool inCar)
@@ -4438,17 +4780,17 @@ namespace LSlife
             if (c.drug == "Weed") { price = 50; }
             if (c.drug == "Crack") { price = 200; }
             if (c.drug == "Cocain") { price = 400; }
-            Ped p = c.Ped;                               
-            if (inCar == false)
-            {                
-                foreach (Ped ped in World.GetNearbyPeds(playerPed.Position, 25))
+            Ped p = c.Ped;
+            foreach (Ped ped in World.GetNearbyPeds(playerPed.Position, 55))
+            {
+                if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
                 {
-                    if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
-                    {
-                        police.Add(ped);
-                        ped.Task.LookAt(playerPed, 10000);
-                    }
+                    police.Add(ped);
+                    ped.Task.LookAt(playerPed, 10000);
                 }
+            }
+            if (inCar == false)
+            {                                
                 playerPed.Task.TurnTo(p);
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_HOWS_IT_GOING", "SPEECH_PARAMS_STANDARD");                
                 Wait(1000);
@@ -4461,15 +4803,6 @@ namespace LSlife
                 Function.Call(Hash.PLAY_SOUND_FRONTEND, -1, "LOCAL_PLYR_CASH_COUNTER_INCREASE", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", 0);
                 UI.Notify("Sold " + c.amount + "g, you got " + PlayerInventory[c.drug] + "g " + c.drug + " left.");
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_THANKS", "SPEECH_PARAMS_STANDARD");
-                foreach (Ped ped in police)
-                {
-                    if (ped.Position.DistanceTo(playerPed.Position) < 30)
-                    {
-                        player.WantedLevel = 1;
-                        break;
-                    }
-                }
-                police.Clear();
                 oldCustomers.Add(p);
                 if (c.Vehicle != null && c.Vehicle.Exists())
                 {
@@ -4500,33 +4833,7 @@ namespace LSlife
                 }
             }
             else
-            {
-                
-                if (playerPed.CurrentVehicle.Model.IsCar)
-                {
-                    {
-                        foreach (Ped ped in World.GetNearbyPeds(playerPed.Position, 20))
-                        {
-                            if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
-                            {
-                                police.Add(ped);
-                                ped.Task.LookAt(playerPed, 10000);
-                            }
-                        }
-                    }                    
-                }
-                else
-                {
-                    foreach (Ped ped in World.GetNearbyPeds(playerPed.Position, 25))
-                    {
-                        if (Function.Call<int>(Hash.GET_PED_TYPE, ped.Handle) == 6)
-                        {
-                            police.Add(ped);
-                            ped.Task.LookAt(playerPed, 10000);
-                        }
-                    }                    
-                }
-                
+            {                               
                 Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_HOWS_IT_GOING", "SPEECH_PARAMS_STANDARD");
                 Wait(1000);
                 p.Task.PlayAnimation("switch@franklin@002110_04_magd_3_weed_exchange", "002110_04_magd_3_weed_exchange_franklin", 8.0f, 3000, AnimationFlags.UpperBodyOnly);
@@ -4536,16 +4843,7 @@ namespace LSlife
                 PlayerInventory[c.drug] -= c.amount;
                 Function.Call(Hash.PLAY_SOUND_FRONTEND, -1, "LOCAL_PLYR_CASH_COUNTER_INCREASE", "DLC_HEISTS_GENERAL_FRONTEND_SOUNDS", 0);
                 UI.Notify("Sold " + c.amount + "g, you got " + PlayerInventory[c.drug] + "g " + c.drug + " left.");
-                Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_THANKS", "SPEECH_PARAMS_STANDARD");
-                foreach (Ped ped in police)
-                {
-                    if (ped.Position.DistanceTo(playerPed.Position) < 25)
-                    {
-                        player.WantedLevel = 1;
-                        break;
-                    }
-                }
-                police.Clear();                
+                Function.Call(Hash._PLAY_AMBIENT_SPEECH1, p, "GENERIC_THANKS", "SPEECH_PARAMS_STANDARD");               
                 if (c.Vehicle != null && c.Vehicle.Exists())
                 {
                     c.Ped.Task.PerformSequence(PerformTaskSeq(1, c.Vehicle));
@@ -4601,46 +4899,76 @@ namespace LSlife
                 }
             }
             LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+            foreach(Ped pol in police)
+            {
+                if(Function.Call<bool>(Hash.HAS_ENTITY_CLEAR_LOS_TO_ENTITY_IN_FRONT, pol, playerPed))
+                {
+                    UI.Notify("You was spotted acting suspicious");
+                    player.WantedLevel = 1;
+                    break;
+                }
+            }
+        }
 
+        void LayLow()
+        {
+                        
         }
 
         private void ContactAnswered(iFruitContact contact)
         {
             // The contact has answered, we can execute our code
-
+            if (ratChance > 0)
+            { }
             if (contact.Name == "Zee - Buy drugs.")
             {
-                if (drugDealer1 == null)
+                if (ratChance > 0)
                 {
-                    callDealer();
-                    UI.Notify("Yo man, sending someone to meet you.");
+                    UI.Notify("Maybe you should lay low for a bit youre way too hot round there.");
                 }
                 else
                 {
-                    UI.Notify("Someones already on there way mate.");
+                    if (drugDealer1 == null)
+                    {
+                        callDealer();
+                        UI.Notify("Yo man, sending someone to meet you.");
+                    }
+                    else
+                    {
+                        UI.Notify("Someones already on there way mate.");
+                    }
                 }
+                
             }
             if (contact.Name == "Zee - Sell drugs.")
             {
-                if (PlayerInventory["Weed"] > 0 || PlayerInventory["Crack"] > 0 || PlayerInventory["Cocain"] > 0)
+                if (!isDealing)
                 {
-                    UI.Notify("Got your call, will send some people youre way.");
-                    isDealing = true;
-                    lastStreet = World.GetStreetName(new Vector2(playerPed.Position.X, playerPed.Position.Y));
-                    thisStreet = lastStreet;
-                    timeStartedDealing = Game.GameTime;
-                    heatBar = new BarTimerBar("Heat");
-                    heatBar.Percentage = 0f; // Half full
-                    //myBar.Percentage = 1.0f; // Full bar
-                    timerBarPool.Add(heatBar);
+                    if (ratChance > 0)
+                    {
+                        UI.Notify("Maybe you should lay low for a bit youre way too hot round there.");
+                    }
+                    else
+                    if (PlayerInventory["Weed"] > 0 || PlayerInventory["Crack"] > 0 || PlayerInventory["Cocain"] > 0)
+                    {
+                        UI.Notify("Got your call, will send some people youre way.");
+                        isDealing = true;
+                        lastStreet = World.GetStreetName(new Vector2(playerPed.Position.X, playerPed.Position.Y));
+                        thisStreet = lastStreet;
+                        timeStartedDealing = Game.GameTime;
+                        heatBar = new BarTimerBar("Heat");
+                        heatBar.Percentage = 0f; // Half full
+                                                 //myBar.Percentage = 1.0f; // Full bar
+                        timerBarPool.Add(heatBar);
 
-                    // You can easily modify the bar color.
-                    heatBar.BackgroundColor = Color.Black;
-                    heatBar.ForegroundColor = Color.WhiteSmoke;
-                }
-                else
-                {
-                    UI.Notify("You got no drugs left, you should get some more");
+                        // You can easily modify the bar color.
+                        heatBar.BackgroundColor = Color.Black;
+                        heatBar.ForegroundColor = Color.Red;
+                    }
+                    else
+                    {
+                        UI.Notify("You got no drugs left, you should get some more");
+                    }
                 }
             }
             if (contact.Name == "Zee - Buy weapons.")
