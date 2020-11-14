@@ -1,21 +1,14 @@
-﻿using System;
+﻿using GTA;
+using GTA.Math;
+using GTA.Native;
+using NativeUI;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml;
 using System.Xml.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Drawing;
-using GTA;
-using GTA.Native;
-using GTA.Math;
-using NativeUI;
-using iFruitAddon2;
-using System.IO;
-using Control = GTA.Control;
-using static LSlife.LSL;
+using static LSlife.Enums;
 using static LSlife.LsFunctions;
+using static LSlife.LSL;
 
 namespace LSlife
 {
@@ -31,18 +24,21 @@ namespace LSlife
                 sellingCocaine = sellCocaine.Checked;
                 if (!sellingWeed && !sellingCrack && !sellingCocaine)
                 {
-                    LsFunctions.SendTextMsg("You need to select a drug to sell before you can start dealing.");                    
+                    LsFunctions.SendTextMsg("You need to select a drug to sell before you can start dealing.");
                 }
                 else
                 if (!isDealing)
                 {
+                    int total = TotalDrugsCarried + HouseHandler.TotalStashDrugs();
+                    if (LSL.pStashVehicle != null) total += LSL.pStashVehicle.TotalDrugs();
                     sender.Visible = !sender.Visible;
                     if (ratChance > 0)
                     {
+
                         LsFunctions.SendTextMsg("Maybe you should lay low for a bit youre way too hot round there.");
                     }
                     else
-                    if (TotalDrugsCarried + stashCocain + stashCrack + stashWeed + drugCarWeed + drugCarCrack + drugCarCocain > 0)
+                    if (total > 0)
                     {
                         LsFunctions.SendTextMsg("Ok, ill put the word out.");
                         Game.PlaySound("Text_Arrive_Tone", "Phone_SoundSet_Default");
@@ -50,11 +46,6 @@ namespace LSlife
                         lastStreet = World.GetStreetName(new Vector2(Game.Player.Character.Position.X, Game.Player.Character.Position.Y));
                         thisStreet = lastStreet;
                         timeStartedDealing = Game.GameTime;
-                        heatBar = new BarTimerBar("Heat");
-                        heatBar.Percentage = 0f;
-                        timerBarPool.Add(heatBar);
-                        heatBar.BackgroundColor = Color.Black;
-                        heatBar.ForegroundColor = Color.White;
                     }
                     else
                     {
@@ -65,43 +56,25 @@ namespace LSlife
         }
         public static void OnZeeMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
-            if (item == buyDrugs)
-            {
-                sender.Visible = !sender.Visible;
-                if (ratChance > 0)
-                {
-                    UI.Notify("Maybe you should lay low for a bit youre way too hot round there.");
-                }
-                else
-                {
-                    if (drugDealer1 == null)
-                    {
-                        callDealer(false);
-                        UI.Notify("Yo man, sending someone to meet you.");
-                    }
-                    else
-                    {
-                        UI.Notify("Someones already on there way mate.");
-                    }
-                }
-            }
             if (item == buyWeapons)
             {
                 sender.Visible = !sender.Visible;
                 if (ratChance > 0)
                 {
-                    UI.Notify("Maybe you should lay low for a bit youre way too hot round there.");
+                    SendTextMsg("Maybe you should lay low for a bit youre way too hot round there.");
                 }
                 else
                 {
                     if (weaponDealer1 == null)
                     {
                         callDealer(true);
-                        UI.Notify("Yo man, sending someone to meet you.");
+                        SendTextMsg("Yo man, sending someone to meet you.");
                     }
                     else
                     {
-                        UI.Notify("Someones already on there way mate.");
+                        RemovePedFromWorld(weaponDealer1, true);
+                        weaponDealer1 = null;
+                        SendTextMsg("Ok ill tell them to head home.");
                     }
                 }
             }
@@ -110,37 +83,79 @@ namespace LSlife
                 if (wepDealer == null)
                 {
                     sender.Visible = !sender.Visible;
-                    wepDealer = new Dealer(PedHash.ArmLieut01GMM, Game.Player.Character.Position, "INGOT", playerGroup);
+                    wepDealer = new Dealer(PedHash.ArmLieut01GMM, Game.Player.Character.Position + (Game.Player.Character.ForwardVector * 2), "INGOT", playerGroup);
+                    SendTextMsg("Sure, Will be there in a min.");
                 }
+                else
+                {
+                    RemovePedFromWorld(wepDealer.ped, true);
+                    wepDealer.vehicle?.MarkAsNoLongerNeeded();
+                    wepDealer.vehicle?.CurrentBlip?.Remove();
+                    wepDealer = null;
+                    SendTextMsg("Ok ill tell them to head home.");
+                }
+            }
+            if (item == payDebt)
+            {
+                if (player.Money > 0)
+                {
+                    int toPay = 0;
+                    if (dealer1Debt < player.Money)
+                    {
+                        toPay = dealer1Debt;
+                    }
+                    else
+                    {
+                        toPay = player.Money;
+                    }
+                    dealer1Debt -= toPay;
+                    player.Money -= toPay;
+                    dealer1Money += toPay;
+                    Dealer1AddRep(MoneyToRep(toPay, true));
+                    payDebt.Text = "Pay Debt $" + IntToMoney(dealer1Debt);
+                    PlayTheSound();
+                    SaveDealer();
+                    Script.Wait(500);
+                    if (dealer1Debt > 0)
+                    {
+                        SendTextMsg("Thanks for paying some of that debt off");
+                    }
+                    else
+                    {
+                        SendTextMsg("Thanks, all the debt is payed off");
+                    }
+                }
+                else SendTextMsg("You idiot, you havent got any money to send me!");
             }
         }
         public static void OnWepMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
-
             if (item == melee)
             {
-                int total = meleePrice[melee.Index] - LsFunctions.Discount(meleePrice[melee.Index]);
+                int total = meleePrice[melee.Index] - Discount(meleePrice[melee.Index]);
                 if (Game.Player.Money >= total)
                 {
                     Enum.TryParse<WeaponHash>(meleeWeps[melee.Index], out WeaponHash weaponHash);
                     if (!Game.Player.Character.Weapons.HasWeapon(weaponHash))
                     {
+                        HandOverGoods(weaponDealer1, player.Character);
                         Game.Player.Money -= total;
+                        PlayTheSound();
                         dealer1Money += total;
                         dealer1Rep += total / 100;
                         Game.Player.Character.Weapons.Give(weaponHash, 0, true, true);
                         UpdateSave();
-
                     }
                 }
                 else
-                if (dealer1Debt < 100000 && dealer1Debt + total < 100000)
+                if (dealer1Debt < zeeDebtCap() && dealer1Debt + total <= zeeDebtCap())
                 {
                     Enum.TryParse<WeaponHash>(meleeWeps[melee.Index], out WeaponHash weaponHash);
                     if (!Game.Player.Character.Weapons.HasWeapon(weaponHash))
                     {
-                        dealer1Debt -= total;
-                        dealer1Rep += total / 100;
+                        HandOverGoods(weaponDealer1, player.Character);
+                        PlayTheSound();
+                        dealer1Debt += total;
                         Game.Player.Character.Weapons.Give(weaponHash, 0, true, true);
                         UpdateSave();
                     }
@@ -163,7 +178,7 @@ namespace LSlife
                         }
                         else
                         {
-                            if (dealer1Debt < 100000 && dealer1Debt + total < 100000)
+                            if (dealer1Debt < zeeDebtCap() && dealer1Debt + total <= zeeDebtCap())
                             {
                                 dealer1Debt += total;
                                 Game.Player.Character.Weapons.Current.Ammo += 50;
@@ -186,7 +201,7 @@ namespace LSlife
                             }
                             else
                             {
-                                if (dealer1Debt < 100000 && dealer1Debt + total < 100000)
+                                if (dealer1Debt < zeeDebtCap() && dealer1Debt + total <= zeeDebtCap())
                                 {
                                     dealer1Debt += total;
                                     Game.Player.Character.Weapons.Current.Ammo += 50;
@@ -208,7 +223,7 @@ namespace LSlife
                             }
                             else
                             {
-                                if (dealer1Debt < 100000 && dealer1Debt + total < 100000)
+                                if (dealer1Debt < zeeDebtCap() && dealer1Debt + total <= zeeDebtCap())
                                 {
                                     dealer1Debt += total;
                                     Game.Player.Character.Weapons.Current.Ammo += 50;
@@ -230,7 +245,7 @@ namespace LSlife
                             }
                             else
                             {
-                                if (dealer1Debt < 100000 && dealer1Debt + total < 100000)
+                                if (dealer1Debt < zeeDebtCap() && dealer1Debt + total <= zeeDebtCap())
                                 {
                                     dealer1Debt += total;
                                     Game.Player.Character.Weapons.Current.Ammo += 50;
@@ -254,7 +269,7 @@ namespace LSlife
                     }
                 }
                 else
-                if (dealer1Debt < 100000 && dealer1Debt + total < 100000)
+                if (dealer1Debt < zeeDebtCap() && dealer1Debt + total <= zeeDebtCap())
                 {
                     Enum.TryParse<WeaponHash>(pistolWeps[pistol.Index], out WeaponHash weaponHash);
                     if (!Game.Player.Character.Weapons.HasWeapon(weaponHash))
@@ -270,19 +285,33 @@ namespace LSlife
                 int total = 250 - LsFunctions.Discount(250);
                 if (Game.Player.Money >= total)
                 {
-                    Game.Player.Money -= total;
-                    dealer1Money += total;
-                    dealer1Rep += total / 100;
-                    Game.Player.Character.Armor = 200;
-                    UpdateSave();
+                    if (IsPlayerArmoursMaxed())
+                    {
+                        UI.ShowSubtitle("You cant carry any more", 4000);
+                    }
+                    else
+                    {
+                        Game.Player.Money -= total;
+                        dealer1Money += total;
+                        dealer1Rep += total / 100;
+                        GiveArmourToPlayer();
+                        UpdateInventory();
+                    }
+
                 }
-                else
-                if (dealer1Debt < 100000 && dealer1Debt + total < 100000)
+                else if (dealer1Debt < zeeDebtCap() && dealer1Debt + total <= zeeDebtCap())
                 {
-                    dealer1Debt -= total;
-                    dealer1Rep += total / 100;
-                    Game.Player.Character.Armor = 200;
-                    UpdateSave();
+                    if (IsPlayerArmoursMaxed())
+                    {
+                        UI.ShowSubtitle("You cant carry any more", 4000);
+                    }
+                    else
+                    {
+                        dealer1Debt += total;
+                        dealer1Rep += total / 100;
+                        GiveArmourToPlayer();
+                        UpdateInventory();
+                    }
                 }
             }
             if (item == dismiss)
@@ -303,187 +332,31 @@ namespace LSlife
         //weed menu
         public static void onWeedMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
-            if (item == WeedBuy && dealer1Weed > 0)
+            if (item == WeedBuy && dealer1Weed > 0 && bushWeed.Value > 0)
             {
-
-                var inGrams = bushWeed.Value * 28;
                 int total = bushWeed.Value * (weed1Price - Discount(weed1Price));
-                PlayerInventory["Weed"] += inGrams;
-                bool sale = false;
-                if (Game.Player.Money >= total)
-                {
-                    dealer1Rep += total / 100;
-                    Game.Player.Money -= total;
-                    dealer1Money += total;
-                    drugDealer1.Money = dealer1Money;
-                    UI.ShowSubtitle("Nice doing business with you.", 4000);
-                    sale = true;
-                }
-                else
-                {
-                    if (dealer1Debt + total > 100000)
-                    {
-                        UI.ShowSubtitle("You owe me to much already", 4000);
-                        sale = false;
-                    }
-                    else
-                    {
-
-                        dealer1Debt += total;
-                        payDebt.Text = ("Pay Debt $" + dealer1Debt);
-                        UI.ShowSubtitle("Ill add this one to youre bill, you now owe me $" + dealer1Debt, 4000);
-                        sale = true;
-                    }
-
-                }
-                if (sale)
-                {
-                    bushWeed.Maximum -= bushWeed.Value;
-                    dealer1Weed = bushWeed.Maximum;
-                    total = bushWeed.Value * (weed1Price - Discount(weed1Price));
-                    WeedBuy.Text = "Buy ~g~" + bushWeed.Value + " ~s~for $~g~" + total;
-                    putWeedStash.Maximum = PlayerInventory["Weed"];
-                    dealerMainMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    weedMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    crackMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    cocainMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    bushWeed.Text = "Weed $" + (weed1Price - Discount(weed1Price)) + "oz";
-                    LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                    foreach (XElement element in LSLifeSave.Descendants())
-                    {
-                        if (element.Name == "playerInventory")
-                        {
-                            foreach (XElement e in element.Elements())
-                            {
-                                if (e.Name == "weed")
-                                {
-                                    e.Value = PlayerInventory["Weed"].ToString();
-                                }
-                            }
-                        }
-                        if (element.Name == "dealer1")
-                        {
-                            foreach (XElement e in element.Elements())
-                            {
-                                if (e.Name == "debt")
-                                {
-                                    e.Value = dealer1Debt.ToString();
-                                }
-                                if (e.Name == "weed")
-                                {
-                                    e.Value = dealer1Weed.ToString();
-                                }
-                                if (e.Name == "money")
-                                {
-                                    e.Value = dealer1Money.ToString();
-                                }
-                                if (e.Name == "rep")
-                                {
-
-                                    e.Value = dealer1Rep.ToString();
-                                }
-                            }
-                        }
-                    }
-                    LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                    TotalDrugsCarried = 0;
-                    foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                    {
-                        TotalDrugsCarried += PlayerInventory[entry.Key];
-                    }
-                }
+                NewOrder.OrderWeed(bushWeed.Value, total);
+                bushWeed.Maximum -= bushWeed.Value;
+                dealer1Weed = bushWeed.Maximum;
+                WeedBuy.Text = "Order ~g~" + bushWeed.Value + " ~s~for $" + IntToMoney(total);
+                PlaceOrder.Text = "Place Order $" + IntToMoney(NewOrder.Bill);
+                DbugString("Weed Order changed");
+                UpdateOrderMenuDesc();
             }
         }
         //CRACK MENUS
         public static void onCrackMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
-            if (item == CrackBuy && dealer1Crack > 0)
+            if (item == CrackBuy && dealer1Crack > 0 && crack.Value > 0)
             {
-                var inGrams = crack.Value * 28;
                 int total = crack.Value * (crack1Price - Discount(crack1Price));
-                PlayerInventory["Crack"] += inGrams;
-                bool sale = false;
-                if (Game.Player.Money >= total)
-                {
-                    dealer1Rep += total / 100;
-                    Game.Player.Money -= total;
-                    dealer1Money += total;
-                    drugDealer1.Money = dealer1Money;
-                    UI.ShowSubtitle("Nice doing business with you.", 4000);
-                    sale = true;
-
-                }
-                else
-                {
-                    if (dealer1Debt + total > 100000)
-                    {
-                        UI.ShowSubtitle("You owe me to much already", 4000);
-                        sale = false;
-                    }
-                    else
-                    {
-
-                        dealer1Debt += total;
-                        payDebt.Text = ("Pay Debt $" + dealer1Debt);
-                        UI.ShowSubtitle("Ill add this one to youre bill, you now owe me $" + dealer1Debt, 4000);
-                        sale = true;
-                    }
-                }
-                if (sale)
-                {
-                    crack.Maximum -= crack.Value;
-                    dealer1Crack = crack.Maximum;
-                    total = crack.Value * (crack1Price - Discount(crack1Price));
-                    CrackBuy.Text = "Buy ~g~" + crack.Value + " ~w~for $~g~" + total;
-                    putCrackStash.Maximum = PlayerInventory["Crack"];
-                    dealerMainMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    weedMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    crackMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    cocainMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    crack.Text = "Crack $" + (crack1Price - Discount(crack1Price)) + "oz";
-                    LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                    foreach (XElement element in LSLifeSave.Descendants())
-                    {
-                        if (element.Name == "playerInventory")
-                        {
-                            foreach (XElement e in element.Elements())
-                            {
-                                if (e.Name == "crack")
-                                {
-                                    e.Value = PlayerInventory["Crack"].ToString();
-                                }
-                            }
-                        }
-                        if (element.Name == "dealer1")
-                        {
-                            foreach (XElement e in element.Elements())
-                            {
-                                if (e.Name == "debt")
-                                {
-                                    e.Value = dealer1Debt.ToString();
-                                }
-                                if (e.Name == "crack")
-                                {
-                                    e.Value = dealer1Crack.ToString();
-                                }
-                                if (e.Name == "money")
-                                {
-                                    e.Value = dealer1Money.ToString();
-                                }
-                                if (e.Name == "rep")
-                                {
-                                    e.Value = dealer1Rep.ToString();
-                                }
-                            }
-                        }
-                    }
-                    LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                    TotalDrugsCarried = 0;
-                    foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                    {
-                        TotalDrugsCarried += PlayerInventory[entry.Key];
-                    }
-                }
+                NewOrder.OrderCrack(crack.Value, total);
+                crack.Maximum -= crack.Value;
+                dealer1Crack = crack.Maximum;
+                CrackBuy.Text = "Order ~g~" + crack.Value + " ~w~for $~g~" + IntToMoney(total);
+                PlaceOrder.Text = "Place Order $" + IntToMoney(NewOrder.Bill);
+                DbugString("Crack Order changed");
+                UpdateOrderMenuDesc();
             }
         }
         //COCAIN MENU
@@ -491,159 +364,29 @@ namespace LSlife
         {
             if (item == CocainBuy && dealer1Cocain > 0)
             {
-                var inGrams = cocaine.Value * 28;
                 int total = cocaine.Value * (cocain1Price - Discount(cocain1Price));
-                PlayerInventory["Cocaine"] += inGrams;
-                bool sale = false;
-                if (Game.Player.Money >= total)
-                {
-                    dealer1Rep += total / 100;
-                    Game.Player.Money -= total;
-                    dealer1Money += total;
-                    drugDealer1.Money = dealer1Money;
-                    UI.ShowSubtitle("Nice doing business with you.", 4000);
-                    sale = true;
-                }
-                else
-                {
-                    if (dealer1Debt + total > 100000)
-                    {
-                        UI.ShowSubtitle("You owe me to much already", 4000);
-                        sale = false;
-                    }
-                    else
-                    {
-
-                        dealer1Debt += total;
-                        payDebt.Text = ("Pay Debt $" + dealer1Debt);
-                        UI.ShowSubtitle("Ill add this one to youre bill, you now owe me $" + dealer1Debt, 4000);
-                        sale = true;
-                    }
-                }
-                if (sale)
-                {
-                    cocaine.Maximum -= cocaine.Value;
-                    dealer1Cocain = cocaine.Maximum;
-                    total = cocaine.Value * (cocain1Price - Discount(cocain1Price));
-                    CocainBuy.Text = "Buy ~g~" + cocaine.Value + " ~w~for $~g~" + total;
-                    putCocainStash.Maximum = PlayerInventory["Cocaine"];
-                    dealerMainMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    weedMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    crackMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    cocainMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)CurrentRepLvl(dealer1Rep);
-                    cocaine.Text = "Cocaine $" + (cocain1Price - Discount(cocain1Price)) + "oz";
-                    LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                    foreach (XElement element in LSLifeSave.Descendants())
-                    {
-                        if (element.Name == "playerInventory")
-                        {
-                            foreach (XElement e in element.Elements())
-                            {
-                                if (e.Name == "cocain")
-                                {
-                                    e.Value = PlayerInventory["Cocaine"].ToString();
-                                }
-                            }
-                        }
-                        if (element.Name == "dealer1")
-                        {
-                            foreach (XElement e in element.Elements())
-                            {
-                                if (e.Name == "debt")
-                                {
-                                    e.Value = dealer1Debt.ToString();
-                                }
-                                if (e.Name == "cocain")
-                                {
-                                    e.Value = dealer1Cocain.ToString();
-                                }
-                                if (e.Name == "money")
-                                {
-                                    e.Value = dealer1Money.ToString();
-                                }
-                                if (e.Name == "rep")
-                                {
-                                    double.TryParse(e.Value, out dealer1Rep);
-
-                                    e.Value = dealer1Rep.ToString();
-                                }
-                            }
-                        }
-                    }
-                    LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                    TotalDrugsCarried = 0;
-                    foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                    {
-                        TotalDrugsCarried += PlayerInventory[entry.Key];
-                    }
-                }
+                NewOrder.OrderCocaine(cocaine.Value, total);
+                cocaine.Maximum -= cocaine.Value;
+                dealer1Cocain = cocaine.Maximum;
+                CocainBuy.Text = "Order ~g~" + cocaine.Value + " ~w~for $~g~" + IntToMoney(total);
+                PlaceOrder.Text = "Place Order $" + IntToMoney(NewOrder.Bill);
+                DbugString("Cocaine Order changed");
+                UpdateOrderMenuDesc();
             }
         }
         //Dealer Main Menu
-        public static void onDealerMenuSelect(UIMenu sender, UIMenuItem item, int index)
+        public static void OnOrderDrugsMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
-            if (item == payDebt && dealer1Debt > 0)
+            if (item == PlaceOrder)
             {
-                if (Game.Player.Money > 0)
+                if (NewOrder != null)
                 {
-                    int total = 0;
-                    if (Game.Player.Money > dealer1Debt) { total = dealer1Debt; }
-                    else { total = Game.Player.Money; }
-                    dealer1Debt -= total;
-                    Game.Player.Money -= total;
-                    dealer1Money += total;
-                    drugDealer1.Money = dealer1Money;
-                    UI.ShowSubtitle("Thanks man", 4000);
-                    LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                    foreach (XElement element in LSLifeSave.Descendants())
+                    if (NewOrder.OrderValid())
                     {
-                        if (element.Name == "dealer1")
-                        {
-                            foreach (XElement e in element.Elements())
-                            {
-                                if (e.Name == "debt")
-                                {
-                                    e.Value = dealer1Debt.ToString();
-                                }
-                                if (e.Name == "money")
-                                {
-                                    e.Value = dealer1Money.ToString();
-                                }
-                                if (e.Name == "rep")
-                                {
-                                    double.TryParse(e.Value, out dealer1Rep);
-                                    dealer1Rep += total / 500;
-                                    e.Value = dealer1Rep.ToString();
-                                    dealerMainMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)LsFunctions.CurrentRepLvl(dealer1Rep);
-                                    weedMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)LsFunctions.CurrentRepLvl(dealer1Rep);
-                                    crackMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)LsFunctions.CurrentRepLvl(dealer1Rep);
-                                    cocainMenu.Subtitle.Caption = "Rep:" + dealer1Rep + " Lvl:" + (int)LsFunctions.CurrentRepLvl(dealer1Rep);
-                                }
-                            }
-                        }
+                        NewOrder.Placed = true;
+                        callDealer(false);
+                        LsMenuPool.CloseAllMenus();
                     }
-                    LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                    if (dealer1Debt == 0)
-                    {
-                        payDebt.Text = "No debt.";
-                    }
-                    else
-                    {
-                        payDebt.Text = "Pay Debt $" + dealer1Debt;
-                    }
-                }
-            }
-            if (item == dismissDealer)
-            {
-                if (drugDealer1 != null)
-                {
-                    drugDealer1.CurrentBlip.Remove();
-                    dealerMainMenu.Visible = !dealerMainMenu.Visible;
-                    drugDealer1.Task.WanderAround();
-                    drugDealer1.MarkAsNoLongerNeeded();
-                    drugDealer1.LeaveGroup();
-                    drugDealer1 = null;
-                    readyToDeal = false;
                 }
             }
         }
@@ -653,12 +396,11 @@ namespace LSlife
         {
             if (item == putWeedVeh)
             {
-                drugCarWeed += putWeedVeh.Value;
+                LSL.pStashVehicle.drugCarWeed += putWeedVeh.Value;
                 PlayerInventory["Weed"] -= putWeedVeh.Value;
                 putWeedVeh.Maximum -= putWeedVeh.Value;
-                takeWeedVeh.Maximum = drugCarWeed;
+                takeWeedVeh.Maximum = LSL.pStashVehicle.drugCarWeed;
                 TotalDrugsCarried = 0;
-                putWeedVeh.Text = "Weed " + PlayerInventory["Weed"] + "g";
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
                 {
@@ -669,6 +411,7 @@ namespace LSlife
                             if (e.Name == "weed")
                             {
                                 e.Value = PlayerInventory["Weed"].ToString();
+                                break;
                             }
                         }
                     }
@@ -678,7 +421,8 @@ namespace LSlife
                         {
                             if (e.Name == "weed")
                             {
-                                e.Value = drugCarWeed.ToString();
+                                e.Value = LSL.pStashVehicle.drugCarWeed.ToString();
+                                break;
                             }
                         }
                     }
@@ -689,14 +433,47 @@ namespace LSlife
                     TotalDrugsCarried += PlayerInventory[entry.Key];
                 }
             }
+            if (item == putWeedOzVeh)
+            {
+                LSL.pStashVehicle.drugCarWeedOz += putWeedOzVeh.Value;
+                pWeedOunce -= putWeedOzVeh.Value;
+                putWeedOzVeh.Maximum -= putWeedOzVeh.Value;
+                takeWeedOzVeh.Maximum = LSL.pStashVehicle.drugCarWeedOz;
+                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
+                foreach (XElement element in LSLifeSave.Descendants())
+                {
+                    if (element.Name == "playerInventory")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "weedOz")
+                            {
+                                e.Value = pWeedOunce.ToString();
+                                break;
+                            }
+                        }
+                    }
+                    if (element.Name == "drugCarStash")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "weedOz")
+                            {
+                                e.Value = LSL.pStashVehicle.drugCarWeedOz.ToString();
+                                break;
+                            }
+                        }
+                    }
+                }
+                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+            }
             if (item == putCrackVeh)
             {
-                drugCarCrack += putCrackVeh.Value;
+                LSL.pStashVehicle.drugCarCrack += putCrackVeh.Value;
                 PlayerInventory["Crack"] -= putCrackVeh.Value;
                 putCrackVeh.Maximum -= putCrackVeh.Value;
-                takeCrackVeh.Maximum = drugCarCrack;
+                takeCrackVeh.Maximum = LSL.pStashVehicle.drugCarCrack;
                 TotalDrugsCarried = 0;
-                putCrackVeh.Text = "Crack " + PlayerInventory["Crack"] + "g";
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
                 {
@@ -707,6 +484,7 @@ namespace LSlife
                             if (e.Name == "crack")
                             {
                                 e.Value = PlayerInventory["Crack"].ToString();
+                                break;
                             }
                         }
                     }
@@ -716,7 +494,8 @@ namespace LSlife
                         {
                             if (e.Name == "crack")
                             {
-                                e.Value = drugCarCrack.ToString();
+                                e.Value = LSL.pStashVehicle.drugCarCrack.ToString();
+                                break;
                             }
                         }
                     }
@@ -727,14 +506,47 @@ namespace LSlife
                     TotalDrugsCarried += PlayerInventory[entry.Key];
                 }
             }
+            if (item == putCrackOzVeh)
+            {
+                LSL.pStashVehicle.drugCarCrackOz += putCrackOzVeh.Value;
+                pCrackOunce -= putCrackOzVeh.Value;
+                putCrackOzVeh.Maximum -= putCrackOzVeh.Value;
+                takeCrackOzVeh.Maximum = LSL.pStashVehicle.drugCarCrackOz;
+                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
+                foreach (XElement element in LSLifeSave.Descendants())
+                {
+                    if (element.Name == "playerInventory")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "crackOz")
+                            {
+                                e.Value = pCrackOunce.ToString();
+                                break;
+                            }
+                        }
+                    }
+                    if (element.Name == "drugCarStash")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "crackOz")
+                            {
+                                e.Value = LSL.pStashVehicle.drugCarCrackOz.ToString();
+                                break;
+                            }
+                        }
+                    }
+                }
+                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+            }
             if (item == putCocainVeh)
             {
-                drugCarCocain += putCocainVeh.Value;
+                LSL.pStashVehicle.drugCarCocain += putCocainVeh.Value;
                 PlayerInventory["Cocaine"] -= putCocainVeh.Value;
                 putCocainVeh.Maximum -= putCocainVeh.Value;
-                takeCocainVeh.Maximum = drugCarCocain;
+                takeCocainVeh.Maximum = LSL.pStashVehicle.drugCarCocain;
                 TotalDrugsCarried = 0;
-                putCocainVeh.Text = "Cocaine " + PlayerInventory["Cocaine"] + "g";
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
                 {
@@ -745,6 +557,7 @@ namespace LSlife
                             if (e.Name == "cocain")
                             {
                                 e.Value = PlayerInventory["Cocaine"].ToString();
+                                break;
                             }
                         }
                     }
@@ -754,7 +567,8 @@ namespace LSlife
                         {
                             if (e.Name == "cocain")
                             {
-                                e.Value = drugCarCocain.ToString();
+                                e.Value = LSL.pStashVehicle.drugCarCocain.ToString();
+                                break;
                             }
                         }
                     }
@@ -765,13 +579,49 @@ namespace LSlife
                     TotalDrugsCarried += PlayerInventory[entry.Key];
                 }
             }
+            if (item == putCocainOzVeh)
+            {
+                LSL.pStashVehicle.drugCarCocainOz += putCocainOzVeh.Value;
+                pCocaineOunce -= putCocainOzVeh.Value;
+                putCocainOzVeh.Maximum -= putCocainOzVeh.Value;
+                takeCocainOzVeh.Maximum = LSL.pStashVehicle.drugCarCocainOz;
+
+                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
+                foreach (XElement element in LSLifeSave.Descendants())
+                {
+                    if (element.Name == "playerInventory")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "cocaineOz")
+                            {
+                                e.Value = pCocaineOunce.ToString();
+                                break;
+                            }
+                        }
+                    }
+                    if (element.Name == "drugCarStash")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "cocainOz")
+                            {
+                                e.Value = LSL.pStashVehicle.drugCarCocainOz.ToString();
+                                break;
+                            }
+                        }
+                    }
+                }
+                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+
+            }
+
             if (item == putMoneyVeh)
             {
-                drugCarMoney += putMoneyVeh.Value;
+                LSL.pStashVehicle.drugCarMoney += putMoneyVeh.Value;
                 Game.Player.Money -= putMoneyVeh.Value;
                 putMoneyVeh.Maximum -= putMoneyVeh.Value;
-                takeMoneyVeh.Maximum = drugCarMoney;
-                putMoneyVeh.Text = "Money $" + Game.Player.Money;
+                takeMoneyVeh.Maximum = LSL.pStashVehicle.drugCarMoney;
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
                 {
@@ -781,9 +631,11 @@ namespace LSlife
                         {
                             if (e.Name == "money")
                             {
-                                e.Value = drugCarMoney.ToString();
+                                e.Value = LSL.pStashVehicle.drugCarMoney.ToString();
+                                break;
                             }
                         }
+                        break;
                     }
                 }
                 LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
@@ -822,25 +674,23 @@ namespace LSlife
                             Game.Player.Character.Weapons.Remove(wep);
                             playerWeapons.Remove(w);
                             playerWeps.RemoveAt(putWeaponVeh.Index);
-                            vehWeapons.Add(w);
-                            vehWeps.Add(putWeaponVeh.Items[putWeaponVeh.Index]);
+                            LSL.pStashVehicle.vehWeapons.Add(w);
+                            LSL.pStashVehicle.vehWeps.Add(putWeaponVeh.Items[putWeaponVeh.Index]);
                         }
 
                     }
                 }
             }
-            UpdateCarStash();
+            LSL.pStashVehicle.UpdateCarStash();
         }
         public static void onTakeVehicleMenuSelect(UIMenu sender, UIMenuItem item, int index)
         {
             if (item == takeWeedVeh)
             {
                 PlayerInventory["Weed"] += takeWeedVeh.Value;
-                drugCarWeed -= takeWeedVeh.Value;
+                LSL.pStashVehicle.drugCarWeed -= takeWeedVeh.Value;
                 takeWeedVeh.Maximum -= takeWeedVeh.Value;
                 putWeedVeh.Maximum = PlayerInventory["Weed"];
-                TotalDrugsCarried = 0;
-                takeWeedVeh.Text = "Weed " + drugCarWeed + "g";
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
                 {
@@ -851,6 +701,7 @@ namespace LSlife
                             if (e.Name == "weed")
                             {
                                 e.Value = PlayerInventory["Weed"].ToString();
+                                break;
                             }
                         }
                     }
@@ -860,25 +711,60 @@ namespace LSlife
                         {
                             if (e.Name == "weed")
                             {
-                                e.Value = drugCarWeed.ToString();
+                                e.Value = LSL.pStashVehicle.drugCarWeed.ToString();
+                                break;
                             }
                         }
                     }
                 }
                 LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+                TotalDrugsCarried = 0;
                 foreach (KeyValuePair<string, int> entry in PlayerInventory)
                 {
                     TotalDrugsCarried += PlayerInventory[entry.Key];
                 }
             }
+            if (item == takeWeedOzVeh)
+            {
+                pWeedOunce += takeWeedOzVeh.Value;
+                LSL.pStashVehicle.drugCarWeedOz -= takeWeedOzVeh.Value;
+                takeWeedOzVeh.Maximum -= takeWeedOzVeh.Value;
+                putWeedOzVeh.Maximum = pWeedOunce;
+                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
+                foreach (XElement element in LSLifeSave.Descendants())
+                {
+                    if (element.Name == "playerInventory")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "weedOz")
+                            {
+                                e.Value = pWeedOunce.ToString();
+                                break;
+                            }
+                        }
+                    }
+                    if (element.Name == "drugCarStash")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "weedOz")
+                            {
+                                e.Value = LSL.pStashVehicle.drugCarWeedOz.ToString();
+                                break;
+                            }
+                        }
+                    }
+                }
+                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+            }
+
             if (item == takeCrackVeh)
             {
                 PlayerInventory["Crack"] += takeCrackVeh.Value;
-                drugCarCrack -= takeCrackVeh.Value;
+                LSL.pStashVehicle.drugCarCrack -= takeCrackVeh.Value;
                 takeCrackVeh.Maximum -= takeCrackVeh.Value;
                 putCrackVeh.Maximum = PlayerInventory["Crack"];
-                TotalDrugsCarried = 0;
-                takeCrackVeh.Text = "Crack " + drugCarCrack + "g";
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
                 {
@@ -889,6 +775,7 @@ namespace LSlife
                             if (e.Name == "crack")
                             {
                                 e.Value = PlayerInventory["Crack"].ToString();
+                                break;
                             }
                         }
                     }
@@ -898,25 +785,57 @@ namespace LSlife
                         {
                             if (e.Name == "crack")
                             {
-                                e.Value = drugCarCrack.ToString();
+                                e.Value = LSL.pStashVehicle.drugCarCrack.ToString();
+                                break;
                             }
                         }
                     }
                 }
                 LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                {
-                    TotalDrugsCarried += PlayerInventory[entry.Key];
-                }
             }
+
+            if (item == takeCrackOzVeh)
+            {
+                pCrackOunce += takeCrackOzVeh.Value;
+                LSL.pStashVehicle.drugCarCrackOz -= takeCrackOzVeh.Value;
+                takeCrackOzVeh.Maximum -= takeCrackOzVeh.Value;
+                putCrackOzVeh.Maximum = pCrackOunce;
+                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
+                foreach (XElement element in LSLifeSave.Descendants())
+                {
+                    if (element.Name == "playerInventory")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "crackOz")
+                            {
+                                e.Value = pCrackOunce.ToString();
+                                break;
+                            }
+                        }
+                    }
+                    if (element.Name == "drugCarStash")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "crack")
+                            {
+                                e.Value = LSL.pStashVehicle.drugCarCrackOz.ToString();
+                                break;
+                            }
+                        }
+                    }
+                }
+                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+            }
+
             if (item == takeCocainVeh)
             {
                 PlayerInventory["Cocaine"] += takeCocainVeh.Value;
-                drugCarCocain -= takeCocainVeh.Value;
+                LSL.pStashVehicle.drugCarCocain -= takeCocainVeh.Value;
                 takeCocainVeh.Maximum -= takeCocainVeh.Value;
                 putCocainStash.Maximum = PlayerInventory["Cocaine"];
                 TotalDrugsCarried = 0;
-                takeCocainVeh.Text = "Cocaine " + drugCarCocain + "g";
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
                 {
@@ -927,6 +846,7 @@ namespace LSlife
                             if (e.Name == "cocain")
                             {
                                 e.Value = PlayerInventory["Cocaine"].ToString();
+                                break;
                             }
                         }
                     }
@@ -936,7 +856,8 @@ namespace LSlife
                         {
                             if (e.Name == "cocain")
                             {
-                                e.Value = drugCarCocain.ToString();
+                                e.Value = LSL.pStashVehicle.drugCarCocain.ToString();
+                                break;
                             }
                         }
                     }
@@ -947,13 +868,51 @@ namespace LSlife
                     TotalDrugsCarried += PlayerInventory[entry.Key];
                 }
             }
+
+            if (item == takeCocainOzVeh)
+            {
+                pCocaineOunce += takeCocainOzVeh.Value;
+                LSL.pStashVehicle.drugCarCocainOz -= takeCocainOzVeh.Value;
+                takeCocainOzVeh.Maximum -= takeCocainOzVeh.Value;
+                //putCocainOzStash.Maximum = pCocaineOunce;                
+                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
+                foreach (XElement element in LSLifeSave.Descendants())
+                {
+                    if (element.Name == "playerInventory")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "cocainOz")
+                            {
+                                e.Value = pCocaineOunce.ToString();
+                                break;
+                            }
+                        }
+                    }
+                    if (element.Name == "drugCarStash")
+                    {
+                        foreach (XElement e in element.Elements())
+                        {
+                            if (e.Name == "cocainOz")
+                            {
+                                e.Value = LSL.pStashVehicle.drugCarCocainOz.ToString();
+                                break;
+                            }
+                        }
+                        
+                    }
+                }
+                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
+            }
+
+
+
             if (item == takeMoneyVeh)
             {
                 Game.Player.Money += takeMoneyVeh.Value;
-                drugCarMoney -= takeMoneyVeh.Value;
+                LSL.pStashVehicle.drugCarMoney -= takeMoneyVeh.Value;
                 takeMoneyVeh.Maximum -= takeMoneyVeh.Value;
                 putMoneyVeh.Maximum = Game.Player.Money;
-                takeMoneyVeh.Text = "Money $" + drugCarMoney;
                 LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
                 foreach (XElement element in LSLifeSave.Descendants())
                 {
@@ -963,9 +922,11 @@ namespace LSlife
                         {
                             if (e.Name == "money")
                             {
-                                e.Value = drugCarMoney.ToString();
+                                e.Value = LSL.pStashVehicle.drugCarMoney.ToString();
+                                break;
                             }
                         }
+                        break;
                     }
                 }
                 LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
@@ -975,7 +936,7 @@ namespace LSlife
                 if (takeWeaponVeh.Items.Count > 0)
                 {
                     vehWeaponsXML = XDocument.Load("scripts\\LSLife\\LsLife_Vehicle_Weapons.xml");
-                    XElement w = vehWeapons[takeWeaponVeh.Index];
+                    XElement w = LSL.pStashVehicle.vehWeapons[takeWeaponVeh.Index];
                     XElement HASH = null;
 
                     foreach (XElement e in w.Elements())
@@ -1015,9 +976,9 @@ namespace LSlife
                                         }
                                         playerWeapons.Add(element);
                                         playerWeps.Add(element.Value);
-                                        vehWeapons.Remove(w);
+                                        LSL.pStashVehicle.vehWeapons.Remove(w);
                                         rootElement.Remove();
-                                        vehWeps.RemoveAt(takeWeaponVeh.Index);
+                                        LSL.pStashVehicle.vehWeps.RemoveAt(takeWeaponVeh.Index);
                                         vehWeaponsXML.Save("scripts\\LSLife\\LsLife_Vehicle_Weapons.xml");
                                         break;
                                     }
@@ -1027,123 +988,186 @@ namespace LSlife
                     }
                 }
             }
-            UpdateCarStash();
+            LSL.pStashVehicle.UpdateCarStash();
         }
         public static void onSliderChange(UIMenuSliderItem sender, int index)
         {
-            //VEHICLE SLIDERS
+            //VEHICLE SLIDERS           
             if (sender == takeWeedVeh)
             {
-                vehStashTakeMenu.Subtitle.Caption = "Take " + takeWeedVeh.Value + "g";
+                vehStashTakeMenu.Subtitle.Caption = "Take " + GramsToOz(takeWeedVeh.Value);
             }
+            else
             if (sender == putWeedVeh)
             {
-                vehStashPutMenu.Subtitle.Caption = "Put " + putWeedVeh.Value + "g";
+                vehStashPutMenu.Subtitle.Caption = "Put " + GramsToOz(putWeedVeh.Value);
             }
-
+            if (sender == takeWeedOzVeh)
+            {
+                vehStashTakeMenu.Subtitle.Caption = "Take ~r~" + takeWeedOzVeh.Value + "~s~z";
+            }
+            else
+            if (sender == putWeedOzVeh)
+            {
+                vehStashPutMenu.Subtitle.Caption = "Put ~r~" + putWeedOzVeh.Value + "~s~z";
+            }
+            else
             if (sender == takeCrackVeh)
             {
-                vehStashTakeMenu.Subtitle.Caption = "Take " + takeCrackVeh.Value + "g";
+                vehStashTakeMenu.Subtitle.Caption = "Take " + GramsToOz(takeCrackVeh.Value);
             }
+            else
             if (sender == putCrackVeh)
             {
-                vehStashPutMenu.Subtitle.Caption = "Put " + putCrackVeh.Value + "g";
+                vehStashPutMenu.Subtitle.Caption = "Put " + GramsToOz(putCrackVeh.Value);
             }
-
+            if (sender == takeCrackOzVeh)
+            {
+                vehStashTakeMenu.Subtitle.Caption = "Take ~r~" + takeCrackOzVeh.Value + "~s~z";
+            }
+            else
+            if (sender == putCrackOzVeh)
+            {
+                vehStashPutMenu.Subtitle.Caption = "Put ~r~" + putCrackOzVeh.Value + "~s~z";
+            }
+            else
             if (sender == takeCocainVeh)
             {
-                vehStashTakeMenu.Subtitle.Caption = "Take " + takeCocainVeh.Value + "g";
+                vehStashTakeMenu.Subtitle.Caption = "Take " + GramsToOz(takeCocainVeh.Value);
             }
+            else
             if (sender == putCocainVeh)
             {
-                vehStashPutMenu.Subtitle.Caption = "Put " + putCocainVeh.Value + "g";
+                vehStashPutMenu.Subtitle.Caption = "Put " + GramsToOz(putCocainVeh.Value);
             }
-
+            else
+            if (sender == takeCocainOzVeh)
+            {
+                vehStashTakeMenu.Subtitle.Caption = "Take ~r~" + takeCocainOzVeh.Value + "~s~z";
+            }
+            else
+            if (sender == putCocainOzVeh)
+            {
+                vehStashPutMenu.Subtitle.Caption = "Put ~r~" + putCocainOzVeh.Value + "~s~z";
+            }
+            else
             if (sender == putMoneyVeh)
             {
-                vehStashPutMenu.Subtitle.Caption = "Put $" + putMoneyVeh.Value;
+                vehStashPutMenu.Subtitle.Caption = "Put $" + IntToMoney(putMoneyVeh.Value);
             }
+            else
             if (sender == takeMoneyVeh)
             {
-                vehStashTakeMenu.Subtitle.Caption = "Take $" + takeMoneyVeh.Value;
+                vehStashTakeMenu.Subtitle.Caption = "Take $" + IntToMoney(takeMoneyVeh.Value);
             }
 
             //STASH SLIDERS
+            else
             if (sender == takeWeedStash)
             {
-                stashTakeMenu.Subtitle.Caption = "Take " + takeWeedStash.Value + "g";
+                stashTakeMenu.Subtitle.Caption = "Take " + GramsToOz(takeWeedStash.Value);
             }
+            else
             if (sender == putWeedStash)
             {
-                stashPutMenu.Subtitle.Caption = "Put " + putWeedStash.Value + "g";
+                stashPutMenu.Subtitle.Caption = "Put " + GramsToOz(putWeedStash.Value);
             }
+            else
             if (sender == takeCrackStash)
             {
-                stashTakeMenu.Subtitle.Caption = "Take " + takeCrackStash.Value + "g";
+                stashTakeMenu.Subtitle.Caption = "Take " + GramsToOz(takeCrackStash.Value);
             }
+            else
             if (sender == putCrackStash)
             {
-                stashPutMenu.Subtitle.Caption = "Put " + putCrackStash.Value + "g";
+                stashPutMenu.Subtitle.Caption = "Put " + GramsToOz(putCrackStash.Value);
             }
+            else
             if (sender == takeCocainStash)
             {
-                stashTakeMenu.Subtitle.Caption = "Take " + takeCocainStash.Value + "g";
+                stashTakeMenu.Subtitle.Caption = "Take " + GramsToOz(takeCocainStash.Value);
             }
+            else
             if (sender == putCocainStash)
             {
-                stashPutMenu.Subtitle.Caption = "Put " + putCocainStash.Value + "g";
+                stashPutMenu.Subtitle.Caption = "Put " + GramsToOz(putCocainStash.Value);
             }
+            else
             if (sender == takeMoneyStash)
             {
-                stashTakeMenu.Subtitle.Caption = "Take $" + takeMoneyStash.Value;
+                stashTakeMenu.Subtitle.Caption = "Take $" + IntToMoney(takeMoneyStash.Value);
             }
+            else if (sender == putWeedOzStash)
+            {
+                stashPutMenu.Subtitle.Caption = "Put ~r~" + putWeedOzStash.Value + "~s~z";
+            }
+            else if (sender == putCrackOzStash)
+            {
+                stashPutMenu.Subtitle.Caption = "Put ~r~" + putCrackOzStash.Value + "~s~z";
+            }
+            else if (sender == putCocainOzStash)
+            {
+                stashPutMenu.Subtitle.Caption = "Put ~r~" + pCocaineOunce + "~s~z";
+            }
+            else
             if (sender == putMoneyStash)
             {
-                stashPutMenu.Subtitle.Caption = "Put $" + putMoneyStash.Value;
+                stashPutMenu.Subtitle.Caption = "Put $" + IntToMoney(putMoneyStash.Value);
             }
 
             //DEALER SLIDERS
+            else
             if (sender == bushWeed)
             {
-                int total = bushWeed.Value * (weed1Price - LsFunctions.Discount(weed1Price));
-                WeedBuy.Text = "Buy ~g~" + bushWeed.Value + " ~s~for $~g~" + total;
+                int total = bushWeed.Value * (weed1Price - Discount(weed1Price));
+                WeedBuy.Text = "Order ~g~" + bushWeed.Value + " ~s~for $" + IntToMoney(total);
             }
+            else
             if (sender == crack)
             {
-                int total = crack.Value * (crack1Price - LsFunctions.Discount(crack1Price));
-                CrackBuy.Text = "Buy ~g~" + crack.Value + " ~s~for $~g~" + total;
+                int total = crack.Value * (crack1Price - Discount(crack1Price));
+                CrackBuy.Text = "Order ~g~" + crack.Value + " ~s~for $" + IntToMoney(total);
             }
+            else
             if (sender == cocaine)
             {
-                int total = cocaine.Value * (cocain1Price - LsFunctions.Discount(cocain1Price));
-                CocainBuy.Text = "Buy ~g~" + cocaine.Value + " ~s~for $~g~" + total;
+                int total = cocaine.Value * (cocain1Price - Discount(cocain1Price));
+                CocainBuy.Text = "Order ~g~" + cocaine.Value + " ~s~for $" + IntToMoney(total);
             }
         }
         public static void onListChange(UIMenuListItem sender, int index)
         {
             if (sender == takeWeaponStash)
             {
-                stashTakeMenu.Subtitle.Caption = "Take " + stashWeps[takeWeaponStash.Index];
+                stashTakeMenu.Subtitle.Caption = "Take " + sender.Items[takeWeaponStash.Index];
             }
+            else
             if (sender == putWeaponStash)
             {
-                stashPutMenu.Subtitle.Caption = "Put " + playerWeps[putWeaponStash.Index];
+                stashPutMenu.Subtitle.Caption = "Put " + sender.Items[putWeaponStash.Index];
             }
+            else
             if (sender == takeWeaponVeh)
             {
-                vehStashTakeMenu.Subtitle.Caption = "Take " + vehWeps[takeWeaponVeh.Index];
+                vehStashTakeMenu.Subtitle.Caption = "Take " + sender.Items[takeWeaponVeh.Index];
             }
+            else
             if (sender == putWeaponVeh)
             {
-                vehStashPutMenu.Subtitle.Caption = "Put " + playerWeps[putWeaponVeh.Index];
+                vehStashPutMenu.Subtitle.Caption = "Put " + sender.Items[putWeaponVeh.Index];
             }
+            else
             if (sender == stashPutMultiplier)
             {
                 putWeedStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
                 putCrackStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
                 putCocainStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
                 putMoneyStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
+                putWeedOzStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
+                putCrackOzStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
+                putCocainOzStash.Multiplier = (int)multiplier[stashPutMultiplier.Index];
             }
+            else
             if (sender == stashTakeMultiplier)
             {
                 takeWeedStash.Multiplier = (int)multiplier[stashTakeMultiplier.Index];
@@ -1151,27 +1175,37 @@ namespace LSlife
                 takeCocainStash.Multiplier = (int)multiplier[stashTakeMultiplier.Index];
                 takeMoneyStash.Multiplier = (int)multiplier[stashTakeMultiplier.Index];
             }
+            else
             if (sender == vehPutMultiplier)
             {
                 putWeedVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
                 putCrackVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
                 putCocainVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
                 putMoneyVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
+                putWeedOzVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
+                putCrackOzVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
+                putCocainOzVeh.Multiplier = (int)multiplier[vehPutMultiplier.Index];
             }
+            else
             if (sender == vehTakeMultiplier)
             {
                 takeWeedVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
                 takeCrackVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
                 takeCocainVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
                 takeMoneyVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
+                takeWeedOzVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
+                takeCrackOzVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
+                takeCocainOzVeh.Multiplier = (int)multiplier[vehTakeMultiplier.Index];
             }
+            else
             if (sender == melee)
             {
-                melee.Text = "Mele $" + (meleePrice[melee.Index] - LsFunctions.Discount(meleePrice[melee.Index]));
+                melee.Text = "Mele $" + IntToMoney(meleePrice[melee.Index] - LsFunctions.Discount(meleePrice[melee.Index]));
             }
+            else
             if (sender == pistol)
             {
-                pistol.Text = "Pistol $" + (pistolPrice[pistol.Index] - LsFunctions.Discount(pistolPrice[pistol.Index]));
+                pistol.Text = "Pistol $" + IntToMoney(pistolPrice[pistol.Index] - LsFunctions.Discount(pistolPrice[pistol.Index]));
             }
 
         }
@@ -1180,147 +1214,80 @@ namespace LSlife
         {
             if (item == putWeedStash)
             {
-                stashWeed += putWeedStash.Value;
+                HouseHandler.CurrentHouse.Weed += putWeedStash.Value;
                 PlayerInventory["Weed"] -= putWeedStash.Value;
-                putWeedStash.Maximum -= putWeedStash.Value;
-                takeWeedStash.Maximum = stashWeed;
-                TotalDrugsCarried = 0;
-                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (XElement element in LSLifeSave.Descendants())
-                {
-                    if (element.Name == "playerInventory")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "weed")
-                            {
-                                e.Value = PlayerInventory["Weed"].ToString();
-                            }
-                        }
-                    }
-                    if (element.Name == "playerStash")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "weed")
-                            {
-                                e.Value = stashWeed.ToString();
-                            }
-                        }
-                    }
-                }
-                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                {
-                    TotalDrugsCarried += PlayerInventory[entry.Key];
-                }
             }
+            else
             if (item == putCrackStash)
             {
-                stashCrack += putCrackStash.Value;
+                HouseHandler.CurrentHouse.Crack += putCrackStash.Value;
                 PlayerInventory["Crack"] -= putCrackStash.Value;
-                putCrackStash.Maximum -= putCrackStash.Value;
-                takeCrackStash.Maximum = stashCrack;
-                TotalDrugsCarried = 0;
-                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (XElement element in LSLifeSave.Descendants())
-                {
-                    if (element.Name == "playerInventory")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "crack")
-                            {
-                                e.Value = PlayerInventory["Crack"].ToString();
-                            }
-                        }
-                    }
-                    if (element.Name == "playerStash")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "crack")
-                            {
-                                e.Value = stashCrack.ToString();
-                            }
-                        }
-                    }
-                }
-                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                {
-                    TotalDrugsCarried += PlayerInventory[entry.Key];
-                }
             }
+            else
             if (item == putCocainStash)
             {
-                stashCocain += putCocainStash.Value;
+                HouseHandler.CurrentHouse.Cocain += putCocainStash.Value;
                 PlayerInventory["Cocaine"] -= putCocainStash.Value;
-                putCocainStash.Maximum -= putCocainStash.Value;
-                takeCocainStash.Maximum = stashCocain;
-                TotalDrugsCarried = 0;
-                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (XElement element in LSLifeSave.Descendants())
-                {
-                    if (element.Name == "playerInventory")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "cocain")
-                            {
-                                e.Value = PlayerInventory["Cocaine"].ToString();
-                            }
-                        }
-                    }
-                    if (element.Name == "playerStash")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "cocain")
-                            {
-                                e.Value = stashCocain.ToString();
-                            }
-                        }
-                    }
-                }
-                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                {
-                    TotalDrugsCarried += PlayerInventory[entry.Key];
-                }
             }
+            else
             if (item == putMoneyStash)
             {
-                stashMoney += putMoneyStash.Value;
+                HouseHandler.CurrentHouse.Money += putMoneyStash.Value;
                 Game.Player.Money -= putMoneyStash.Value;
-                putMoneyStash.Maximum -= putMoneyStash.Value;
-                takeMoneyStash.Maximum = stashMoney;
-                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (XElement element in LSLifeSave.Descendants())
+            }
+            else
+            if (item == putWeedOzStash)
+            {
+                HouseHandler.CurrentHouse.Weed += putWeedOzStash.Value * 28;
+                pWeedOunce -= putWeedOzStash.Value;
+            }
+            else if (item == putCrackOzStash)
+            {
+                HouseHandler.CurrentHouse.Crack += putCrackOzStash.Value * 28;
+                pCrackOunce -= putCrackOzStash.Value;
+            }
+            else if (item == putCocainOzStash)
+            {
+                HouseHandler.CurrentHouse.Cocain += putCocainOzStash.Value * 28;
+                pCocaineOunce -= putCocainOzStash.Value;
+            }
+            else
+            if (item == putArmourStash)
+            {
+                int amount = putArmourStash.Index;
+                if (amount > 0 && playerArmours > 0)
                 {
-                    if (element.Name == "playerStash")
+                    playerArmours -= amount;
+                    HouseHandler.CurrentHouse.Armor += amount;
+                    foreach (XElement ele in LSLifeSave.Descendants())
                     {
-                        foreach (XElement e in element.Elements())
+                        if (ele.Name == "playerInventory")
                         {
-                            if (e.Name == "money")
+                            foreach (XElement el in ele.Elements())
                             {
-                                e.Value = stashMoney.ToString();
+                                if (el.Name == "armour")
+                                {
+                                    el.Value = playerArmours.ToString();
+                                    break;
+                                }
                             }
+                            break;
                         }
                     }
+                    LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
                 }
-                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
             }
+
+            else
             if (item == putWeaponStash)
             {
                 if (putWeaponStash.Items.Count > 0)
                 {
-                    stashWeaponsXML = XDocument.Load("scripts\\LSLife\\LsLife_Weapons.xml");
                     int ID = 0;
                     int newID = 0;
-                    if (stashWeaponsXML.Descendants().Count() > 0)
+                    if (HouseHandler.CurrentHouse.Weapons.Count > 0)
                     {
-                        foreach (XElement element in stashWeaponsXML.Descendants())
+                        foreach (XElement element in HouseHandler.CurrentHouse.Weapons)
                         {
                             if (element.Name == "weapon")
                             {
@@ -1334,23 +1301,25 @@ namespace LSlife
                     if (w != null)
                     {
                         Enum.TryParse(playerWeps[putWeaponStash.Index], out WeaponHash wep);
+                        //UI.Notify(wep.ToString());
                         if (wep != WeaponHash.Unarmed)
                         {
                             w.SetAttributeValue("id", newID);
-                            var rootElement = stashWeaponsXML.Element("weapons");
-                            rootElement?.Add(w);
-                            stashWeaponsXML.Save("scripts\\LSLife\\LsLife_Weapons.xml");
+                            HouseHandler.CurrentHouse.Weapons.Add(w);
+                            HouseHandler.CurrentHouse.Weps.Add(putWeaponStash.Items[putWeaponStash.Index]);
                             Game.Player.Character.Weapons.Remove(wep);
                             playerWeapons.Remove(w);
                             playerWeps.RemoveAt(putWeaponStash.Index);
-                            stashWeapons.Add(w);
-                            stashWeps.Add(putWeaponStash.Items[putWeaponStash.Index]);
+
+
                         }
 
                     }
                 }
             }
             UpdateInventory();
+            HouseHandler.UpdateMenu(HouseHandler.CurrentHouse);
+            HouseHandler.SaveHouse(HouseHandler.CurrentHouse);
         }
         //STASH TO PLAYER MENUS
         public static void onPlayerMenuSelect(UIMenu sender, UIMenuItem item, int index)
@@ -1358,144 +1327,69 @@ namespace LSlife
             if (item == takeWeedStash)
             {
                 PlayerInventory["Weed"] += takeWeedStash.Value;
-                stashWeed -= takeWeedStash.Value;
-                takeWeedStash.Maximum -= takeWeedStash.Value;
-                putWeedStash.Maximum = PlayerInventory["Weed"];
-                TotalDrugsCarried = 0;
-                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (XElement element in LSLifeSave.Descendants())
-                {
-                    if (element.Name == "playerInventory")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "weed")
-                            {
-                                e.Value = PlayerInventory["Weed"].ToString();
-                            }
-                        }
-                    }
-                    if (element.Name == "playerStash")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "weed")
-                            {
-                                e.Value = stashWeed.ToString();
-                            }
-                        }
-                    }
-                }
-                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                {
-                    TotalDrugsCarried += PlayerInventory[entry.Key];
-                }
+                HouseHandler.CurrentHouse.Weed -= takeWeedStash.Value;
             }
+            else
             if (item == takeCrackStash)
             {
                 PlayerInventory["Crack"] += takeCrackStash.Value;
-                stashCrack -= takeCrackStash.Value;
-                takeCrackStash.Maximum -= takeCrackStash.Value;
-                putCrackStash.Maximum = PlayerInventory["Crack"];
-                TotalDrugsCarried = 0;
-                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (XElement element in LSLifeSave.Descendants())
-                {
-                    if (element.Name == "playerInventory")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "crack")
-                            {
-                                e.Value = PlayerInventory["Crack"].ToString();
-                            }
-                        }
-                    }
-                    if (element.Name == "playerStash")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "crack")
-                            {
-                                e.Value = stashCrack.ToString();
-                            }
-                        }
-                    }
-                }
-                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                {
-                    TotalDrugsCarried += PlayerInventory[entry.Key];
-                }
+                HouseHandler.CurrentHouse.Crack -= takeCrackStash.Value;
+
             }
+            else
             if (item == takeCocainStash)
             {
                 PlayerInventory["Cocaine"] += takeCocainStash.Value;
-                stashCocain -= takeCocainStash.Value;
-                takeCocainStash.Maximum -= takeCocainStash.Value;
-                putCocainStash.Maximum = PlayerInventory["Cocaine"];
-                TotalDrugsCarried = 0;
-                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (XElement element in LSLifeSave.Descendants())
-                {
-                    if (element.Name == "playerInventory")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "cocain")
-                            {
-                                e.Value = PlayerInventory["Cocaine"].ToString();
-                            }
-                        }
-                    }
-                    if (element.Name == "playerStash")
-                    {
-                        foreach (XElement e in element.Elements())
-                        {
-                            if (e.Name == "cocain")
-                            {
-                                e.Value = stashCocain.ToString();
-                            }
-                        }
-                    }
-                }
-                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (KeyValuePair<string, int> entry in PlayerInventory)
-                {
-                    TotalDrugsCarried += PlayerInventory[entry.Key];
-                }
+                HouseHandler.CurrentHouse.Cocain -= takeCocainStash.Value;
+
             }
+            else
             if (item == takeMoneyStash)
             {
                 Game.Player.Money += takeMoneyStash.Value;
-                stashMoney -= takeMoneyStash.Value;
-                takeMoneyStash.Maximum -= takeMoneyStash.Value;
-                putMoneyStash.Maximum = Game.Player.Money;
-                LSLifeSave = XDocument.Load("scripts\\LSLife\\LSLifeSave.xml");
-                foreach (XElement element in LSLifeSave.Descendants())
+                HouseHandler.CurrentHouse.Money -= takeMoneyStash.Value;
+            }
+            else
+            if (item == takeArmourStash)
+            {
+                int amount = takeArmourStash.Index;
+                int max = 5;
+                if (Game.Player.Character.Armor < 100) max = 6;
+                if (amount > 0 && HouseHandler.CurrentHouse.Armor > 0 && amount + playerArmours <= max)
                 {
-                    if (element.Name == "playerStash")
+                    if (Game.Player.Character.Armor < 100)
                     {
-                        foreach (XElement e in element.Elements())
+                        Game.Player.Character.Armor = 100;
+                        amount--;
+                    }
+                    playerArmours += amount;
+                    HouseHandler.CurrentHouse.Armor -= amount;
+                    foreach (XElement ele in LSLifeSave.Descendants())
+                    {
+                        if (ele.Name == "playerInventory")
                         {
-                            if (e.Name == "money")
+                            foreach (XElement el in ele.Elements())
                             {
-                                e.Value = stashMoney.ToString();
+                                if (el.Name == "armour")
+                                {
+                                    el.Value = playerArmours.ToString();
+                                    break;
+                                }
                             }
+                            break;
                         }
                     }
+                    LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
                 }
-                LSLifeSave.Save("scripts\\LSLife\\LSLifeSave.xml");
             }
+            else
             if (item == takeWeaponStash)
             {
                 if (takeWeaponStash.Items.Count > 0)
                 {
-                    stashWeaponsXML = XDocument.Load("scripts\\LSLife\\LsLife_Weapons.xml");
-                    XElement w = stashWeapons[takeWeaponStash.Index];
+                    //stashWeaponsXML = XDocument.Load("scripts\\LSLife\\LsLife_Weapons.xml");
+                    XElement w = HouseHandler.CurrentHouse.Weapons[takeWeaponStash.Index];
                     XElement HASH = null;
-
                     foreach (XElement e in w.Elements())
                     {
                         if (e.Name == "HASH") { HASH = e; }
@@ -1505,47 +1399,49 @@ namespace LSlife
                         Enum.TryParse(HASH.Value, out WeaponHash wep);
                         if (wep != WeaponHash.Unarmed)
                         {
-
-                            foreach (XElement element in stashWeaponsXML.Descendants())
+                            bool hasWeapon = false;
+                            int ammo = 0;
+                            foreach (XElement aEl in w.Descendants())
                             {
-                                int ammo = 0;
-                                if (element.Name == "HASH")
+                                if (aEl.Name == "AMMO")
                                 {
-                                    if (element.Value == HASH.Value)
+                                    Int32.TryParse(aEl.Value, out ammo);
+                                    break;
+                                }
+                            }
+                            if (!Game.Player.Character.Weapons.HasWeapon(wep))
+                            {
+                                Game.Player.Character.Weapons.Give(wep, ammo, true, true);
+                                Game.Player.Character.Weapons.Select(wep);
+                            }
+                            else
+                            {
+                                hasWeapon = true;
+                                Game.Player.Character.Weapons.Select(wep);
+                                Game.Player.Character.Weapons.Current.Ammo += ammo;
+                            }
+                            if (!hasWeapon)
+                            {
+                                playerWeapons.Add(w);
+                                playerWeps.Add(HASH.Value);
+                                foreach (XElement aEl in w.Descendants())
+                                {
+                                    if (aEl.Name == "COMPONENT")
                                     {
-                                        XElement rootElement = element.Parent;
-                                        foreach (XElement e in rootElement.Elements())
-                                        {
-                                            if (e.Name == "AMMO")
-                                            {
-                                                Int32.TryParse(e.Value, out ammo);
-                                            }
-                                        }
-                                        Game.Player.Character.Weapons.Give(wep, ammo, true, false);
-                                        Game.Player.Character.Weapons.Select(wep, true);
-                                        foreach (XElement e in rootElement.Elements())
-                                        {
-                                            if (e.Name == "COMPONENT")
-                                            {
-                                                Enum.TryParse(e.Value, out WeaponComponent wepcomp);
-                                                Game.Player.Character.Weapons.Current.SetComponent(wepcomp, true);
-                                            }
-                                        }
-                                        playerWeapons.Add(element);
-                                        playerWeps.Add(element.Value);
-                                        stashWeapons.Remove(w);
-                                        rootElement.Remove();
-                                        stashWeps.RemoveAt(takeWeaponStash.Index);
-                                        stashWeaponsXML.Save("scripts\\LSLife\\LsLife_Weapons.xml");
-                                        break;
+                                        Enum.TryParse(aEl.Value, out WeaponComponent wepcomp);
+                                        Game.Player.Character.Weapons.Current.SetComponent(wepcomp, true);
                                     }
                                 }
                             }
+                            HouseHandler.CurrentHouse.Weapons.Remove(w);
+                            HouseHandler.CurrentHouse.Weps.RemoveAt(takeWeaponStash.Index);
                         }
                     }
                 }
             }
             UpdateInventory();
+            HouseHandler.UpdateMenu(HouseHandler.CurrentHouse);
+            HouseHandler.SaveHouse(HouseHandler.CurrentHouse);
         }
         //CUSTOMERS
         public static void onCustomerMenuSelect(UIMenu sender, UIMenuItem item, int index)
@@ -1555,36 +1451,13 @@ namespace LSlife
                 jobOfferTimer = Game.GameTime;
                 if (PlayerInventory[customerSellTo.Drug.Name] >= customerSellTo.amount)
                 {
-                    switch (customerSellTo.Drug.Name)
+                    foreach(Drug d in areas[areaIndex].Drugs)
                     {
-                        case "Weed":
-                            if (areas[areaIndex].AreaType == AreaType.Normal)
-                            {
-                                if (areas[areaIndex].DemandNotMet == true)
-                                {
-                                    areas[areaIndex].DemandNotMet = false;
-                                }
-                            }
-                            break;
-                        case "Crack":
-                            if (areas[areaIndex].AreaType == AreaType.Poor)
-                            {
-                                if (areas[areaIndex].DemandNotMet == true)
-                                {
-                                    areas[areaIndex].DemandNotMet = false;
-                                }
-                            }
-                            break;
-                        case "Cocaine":
-                            if (areas[areaIndex].AreaType == AreaType.Rich)
-                            {
-                                if (areas[areaIndex].DemandNotMet == true)
-                                {
-                                    areas[areaIndex].DemandNotMet = false;
-                                }
-                            }
-                            break;
-                    }
+                        if(d.Name == customerSellTo.Drug.Name)
+                        {
+                            d.Supplied = true;
+                        }
+                    }                                      
                     if (customerSellTo.FarAway)
                     {
                         if (jobAccepted) { jobAccepted = false; }
@@ -1604,40 +1477,15 @@ namespace LSlife
                 }
 
             }
+            else
             if (item == turnAway)
             {
-                switch (customerSellTo.Drug.Name)
+                foreach (Drug d in areas[areaIndex].Drugs)
                 {
-                    case "Weed":
-                        if (areas[areaIndex].AreaType == AreaType.Normal)
-                        {
-                            if (areas[areaIndex].DemandNotMet == false)
-                            {
-                                areas[areaIndex].DemandNotMet = true;
-                                areas[areaIndex].HighDemandTimer = Game.GameTime;
-                            }
-                        }
-                        break;
-                    case "Crack":
-                        if (areas[areaIndex].AreaType == AreaType.Poor)
-                        {
-                            if (areas[areaIndex].DemandNotMet == false)
-                            {
-                                areas[areaIndex].DemandNotMet = true;
-                                areas[areaIndex].HighDemandTimer = Game.GameTime;
-                            }
-                        }
-                        break;
-                    case "Cocaine":
-                        if (areas[areaIndex].AreaType == AreaType.Rich)
-                        {
-                            if (areas[areaIndex].DemandNotMet == false)
-                            {
-                                areas[areaIndex].DemandNotMet = true;
-                                areas[areaIndex].HighDemandTimer = Game.GameTime;
-                            }
-                        }
-                        break;
+                    if (d.Name == customerSellTo.Drug.Name)
+                    {
+                        d.Supplied = false;
+                    }
                 }
                 jobOfferTimer = Game.GameTime;
                 customerMainMenu.Visible = !customerMainMenu.Visible;
@@ -1653,7 +1501,7 @@ namespace LSlife
                 {
                     if (customerSellTo.Vehicle != null && customerSellTo.Vehicle.Exists())
                     {
-                        customerSellTo.Ped.Task.PerformSequence(PerformTaskSeq(1, customerSellTo.Vehicle));
+                        customerSellTo.Ped.Task.PerformSequence(PerformTaskSeq(1, customerSellTo.Vehicle, Vector3.Zero));
                         RemovePedFromWorld(customerSellTo.Ped, false);
 
                     }
@@ -1667,6 +1515,295 @@ namespace LSlife
                     customerSellTo = null;
                 }
             }
+        }
+
+        public static void HireDealerFollowSelect(UIMenu sender, UIMenuItem selectedItem)
+        {
+            hireDealerMainMenu.Visible = false;
+            if (aDealer != null)
+            {
+                aDealer.NewState = DStates.Normal;
+            }
+
+        }
+
+        //Hire dealer menus
+        public static void HireDealerOfferSelect(UIMenu sender, UIMenuItem selectedItem)
+        {
+            hireDealerMainMenu.Visible = false;
+
+            if (aDealer != null)
+            {
+                aDealer.NewState = DStates.Normal;
+                if (aDealer.LastOffer < hireDealerOfferAmount.Value)
+                {
+                    if (aDealer.DecidePlayerOffer(hireDealerOfferAmount.Value))
+                    {
+                        Function.Call(Hash._PLAY_AMBIENT_SPEECH1, aDealer.dPed, "GENERIC_YES", "SPEECH_PARAMS_FORCE");
+                        ChangeAdealerToPdealer();
+                        UI.ShowSubtitle("Sure i will work for you.", 4000);
+                        Game.Player.Money -= hireDealerOfferAmount.Value;
+                        PlayTheSound();
+                        hireDealerOfferAmount.Maximum = Game.Player.Money;
+                        if (driveByHandler.AmountOfDriveBy() == 0 && rnd.Next(0, 5) == 0)
+                        {
+                            SpawnDriveBy();
+                        }
+
+                    }
+                    else
+                    {
+                        int rNumber = rnd.Next(0, 3);
+                        if (rNumber == 0)
+                        {
+                            aDealer.NewState = DStates.AttackPlayer;
+                            Function.Call(Hash._PLAY_AMBIENT_SPEECH1, aDealer.dPed, "GENERIC_CURSE_HIGH", "SPEECH_PARAMS_FORCE");
+                            //UI.ShowSubtitle("Nah, im just gona kill you and take your money.", 4000);
+                            if (driveByHandler.AmountOfDriveBy() == 0 && rnd.Next(0, 5) == 0)
+                            {
+                                SpawnDriveBy();
+                            }
+                        }
+                        else
+                        {
+                            Function.Call(Hash._PLAY_AMBIENT_SPEECH1, aDealer.dPed, "GENERIC_NO", "SPEECH_PARAMS_FORCE");
+                            UI.ShowSubtitle("Your kidding me, Im worth more than that!", 4000);
+                            aDealer.SetLastOfferAmount(hireDealerOfferAmount.Value);
+                        }
+                    }
+                }
+                else
+                {
+                    int rNumber = rnd.Next(0, 3);
+                    if (rNumber == 0)
+                    {
+                        aDealer.NewState = DStates.AttackPlayer;
+                        Function.Call(Hash._PLAY_AMBIENT_SPEECH1, aDealer.dPed, "GENERIC_CURSE_HIGH", "SPEECH_PARAMS_FORCE");
+                        UI.ShowSubtitle("Nah, im just gona kill you and take your money.", 4000);
+                        if (driveByHandler.AmountOfDriveBy() == 0 && rnd.Next(0, 5) == 0)
+                        {
+                            SpawnDriveBy();
+                        }
+                    }
+                    else UI.ShowSubtitle("Offer me more and i might accept.", 4000);
+                }
+            }
+        }
+        public static void HireDealerOfferAmount_OnSliderChanged(UIMenuSliderItem sender, int newIndex)
+        {
+            hireDealerMakeOffer.Text = "Offer $" + IntToMoney(sender.Value);
+        }
+
+        //PlayerDealer meuns
+
+        public static void WArmour_Activated(UIMenu sender, UIMenuItem selectedItem)
+        {
+            if (playerArmours > 0)
+            {
+                HandOverGoods(player.Character, DealerHandler.currentDealer.Ped);
+                if (DealerHandler.currentDealer?.Ped?.Armor < 200)
+                {
+                    DealerHandler.currentDealer.Ped.Armor = 200;
+                    DealerHandler.currentDealer.dArmour = DealerHandler.currentDealer.Ped.Armor;
+                    playerArmours -= 1;
+                    if (playerArmours == 0) selectedItem.Text = "No armour left";
+                    PlayTheSound();
+                    UpdateInventory();
+                    SetWorkerMenuHealth(DealerHandler.currentDealer.Ped);
+                }
+                else UI.ShowSubtitle("I already have enough armour.", 4000);
+            }
+        }
+
+        public static void WWeapons_Activated(UIMenu sender, UIMenuItem selectedItem)
+        {
+            if (DEBUG) UI.Notify("Transfer weapon");
+            if (wWeapons.Items.Count > 0)
+            {
+                HandOverGoods(player.Character, DealerHandler.currentDealer.Ped);
+                if (Enum.TryParse(playerWeps[wWeapons.Index], out WeaponHash wep))
+                {
+                    if (wep != WeaponHash.Unarmed)
+                    {
+                        XElement w = playerWeapons[wWeapons.Index];
+                        if (w != null)
+                        {
+                            XDocument dealersDoc = XDocument.Load("scripts\\LSLife\\LSLife_Dealers.xml");
+                            if (dealersDoc.Descendants().Count() > 0)
+                            {
+                                foreach (XElement element in dealersDoc.Descendants())
+                                {
+                                    if (element.Name == "dealer")
+                                    {
+                                        bool found = false;
+                                        foreach (XElement e in element.Elements())
+                                        {
+                                            if (e.Name == "id" && e.Value == DealerHandler.currentDealer.ID.ToString())
+                                            {
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                        if (found)
+                                        {
+                                            bool hasWeapon = false;
+                                            XElement dWeapon = null;
+                                            foreach (XElement e in element.Descendants())
+                                            {
+                                                if (e.Name == "HASH" && e.Value == wep.ToString())
+                                                {
+                                                    UI.Notify("Dealer found " + wep);
+                                                    hasWeapon = true;
+                                                    dWeapon = e.Parent;
+                                                    break;
+                                                }
+                                            }
+
+                                            if (hasWeapon)
+                                            {
+                                                dWeapon.ReplaceWith(w);
+                                            }
+                                            else
+                                            {
+                                                element.Add(w);
+                                            }
+                                            dealersDoc.Save("scripts\\LSLife\\LSLife_Dealers.xml");
+                                            int ammo = 1000;
+                                            foreach (XElement e in w.Descendants())
+                                            {
+                                                if (e.Name == "AMMO")
+                                                {
+                                                    Int32.TryParse(e.Value, out ammo);
+                                                    DealerHandler.currentDealer?.Ped.Weapons.Give(wep, ammo, true, true);
+                                                    DealerHandler.currentDealer?.Ped?.Weapons.Select(wep);
+                                                    PlayTheSound();
+                                                }
+                                                if (e.Name == "COMPONENT")
+                                                {
+                                                    if (Enum.TryParse(e.Value, out WeaponComponent wepcomp))
+                                                    {
+                                                        DealerHandler.currentDealer?.Ped?.Weapons.Current.SetComponent(wepcomp, true);
+                                                    }
+                                                }
+                                            }
+                                            Game.Player.Character.Weapons.Remove(wep);
+                                            playerWeapons.Remove(w);
+                                            playerWeps.RemoveAt(wWeapons.Index);
+                                            wWeapons.Items = playerWeps;
+                                            wWeapons.Index = 0;
+                                            if (DEBUG) UI.Notify("Saving Dealer Weapon " + wep.ToString() + " ammo:" + ammo);
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        else if (DEBUG) UI.Notify("No match found in playerWeapons");
+                    }
+                }
+                else if (DEBUG) UI.Notify("No such Hash found " + playerWeps[wWeapons.Index]);
+            }
+            else if (DEBUG) UI.Notify("NO weapons found");
+        }
+
+        public static void WFollow_Activated(UIMenu sender, UIMenuItem selectedItem)
+        {
+            if (DealerHandler.currentDealer != null)
+            {
+                DealerHandler.needsSave = true;
+                if (DealerHandler.currentDealer.Working)
+                {
+                    DealerHandler.currentDealer.NewState = PdStates.FollowPlayer;
+                    wFollow.Text = "Work here";
+                    UI.ShowSubtitle("Ok", 3000);
+                }
+                else if (DealerHandler.dealers.FindAll(d => d.area == playerArea && d != DealerHandler.currentDealer && d.Working).Count == 0)
+                {
+                    DealerHandler.currentDealer.NewState = PdStates.Normal;
+                    wFollow.Text = "Follow me";
+                    UI.ShowSubtitle("Ok", 3000);
+                }
+                else
+                {
+                    UI.ShowSubtitle("You got someone else working here.", 4000);
+                }
+            }
+            LsMenuPool.CloseAllMenus();
+            Script.Wait(1000);
+        }
+
+        public static void WConfirm_Activated(UIMenu sender, UIMenuItem selectedItem)
+        {
+            int i = 0;
+            foreach (PlayerDealer dealer in DealerHandler.dealers)
+            {
+                if (dealer == DealerHandler.currentDealer) break;
+                else i++;
+            }
+            bool change = false;
+            if (wWeed.Value > 0)
+            {
+                DealerHandler.dealers[i].Drugs["Weed"] += wWeed.Value;
+                PlayerInventory["Weed"] -= wWeed.Value;
+                wWeed.Value = 0;
+                wWeed.Text = "Weed " + GramsToOz(wWeed.Value);
+                change = true;
+            }
+            if (wCrack.Value > 0)
+            {
+                DealerHandler.dealers[i].Drugs["Crack"] += wCrack.Value;
+                PlayerInventory["Crack"] -= wCrack.Value;
+                wCrack.Value = 0;
+                wCrack.Text = "Crack " + GramsToOz(wCrack.Value);
+                change = true;
+            }
+            if (wCocaine.Value > 0)
+            {
+                DealerHandler.dealers[i].Drugs["Cocaine"] += wCocaine.Value;
+                PlayerInventory["Cocaine"] -= wCocaine.Value;
+                wCocaine.Value = 0;
+                wCocaine.Text = "Coke " + GramsToOz(wCocaine.Value);
+                change = true;
+            }
+            if (change)
+            {
+                HandOverGoods(player.Character, DealerHandler.currentDealer.Ped);
+                UpdateInventory();
+                DealerHandler.dealers[i].SetDrugDesc();
+                DealerHandler.needsSave = true;
+            }
+        }
+
+        public static void WCollect_Activated(UIMenu sender, UIMenuItem selectedItem)
+        {
+            int i = 0;
+            foreach (PlayerDealer dealer in DealerHandler.dealers)
+            {
+                if (dealer == DealerHandler.currentDealer) break;
+                else i++;
+            }
+            if (DealerHandler.dealers[i].Money >= 100)
+            {
+                HandOverGoods(player.Character, DealerHandler.currentDealer.Ped);
+                DealerHandler.dealers[i].GiveMoneyToPlayer();
+                DealerHandler.dealers[i].SetDrugDesc();
+                WorkerMainMenu.CurrentSelection = 3;
+            }
+        }
+
+        public static void WCocaine_OnSliderChanged(UIMenuSliderItem sender, int newIndex)
+        {
+            wCocaine.Text = "Coke " + GramsToOz(sender.Value);
+        }
+
+        public static void WCrack_OnSliderChanged(UIMenuSliderItem sender, int newIndex)
+        {
+            wCrack.Text = "Crack " + GramsToOz(sender.Value);
+        }
+
+        public static void WWeed_OnSliderChanged(UIMenuSliderItem sender, int newIndex)
+        {
+            wWeed.Text = "Weed " + GramsToOz(sender.Value);
         }
     }
 }

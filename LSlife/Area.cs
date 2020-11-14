@@ -1,19 +1,8 @@
-﻿using System;
+﻿using GTA;
+using GTA.Native;
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Xml;
-using System.Xml.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Drawing;
-using GTA;
-using GTA.Native;
-using GTA.Math;
-using NativeUI;
-using iFruitAddon2;
-using System.IO;
-using Control = GTA.Control;
 using static LSlife.LSL;
 
 namespace LSlife
@@ -23,86 +12,84 @@ namespace LSlife
         public string Name;
         public List<Drug> Drugs = new List<Drug>();
         public AreaType AreaType = AreaType.Normal;
+        public jurisdictionType PoliceType = jurisdictionType.LSPD;
         public int CopPresance = 0;
         public int GangPresance = 0;
         public float Reputation = 0;
-        public int Heat = 0;
-        public bool DemandNotMet = false;
-        public int HighDemandTimer = Game.GameTime;
-        public int TimeLastActive = Game.GameTime;
+        public int Heat = 0;                    
         public int Dealers = 0;
+        public bool DealerKilled = false;
+        public int DemandBuffTime = 0;
+        public int DemandBuffLength = 0;
 
-        public Area(string name, List<Drug> drugs, AreaType areaType)
+
+        public Area(string name, List<Drug> _drugs, AreaType areaType)
         {
             Name = name;
-            Drugs = drugs;
+            Drugs = _drugs;
             AreaType = areaType;
+            PoliceType = jurisdiction[Name];
             switch (AreaType)
             {
                 case AreaType.Poor:
                     CopPresance = 1;
-                    GangPresance = 5;
+                    GangPresance = 6;
                     break;
                 case AreaType.Normal:
-                    CopPresance = 2;
-                    GangPresance = 2;
+                    CopPresance = 1;
+                    GangPresance = 5;
                     break;
                 case AreaType.Rich:
-                    CopPresance = 5;
-                    GangPresance = 1;
+                    CopPresance = 1;
+                    GangPresance = 5;
                     break;
             }
             foreach (Drug drug in Drugs)
             {
-                Random rng = new Random();
-                double range = (double)0.25 - (double)0.0;
-                double sample = rng.NextDouble();
-                double scaled = (sample * range) + 0.0;
-                float f = (float)scaled;
                 switch (AreaType)
                 {
                     case AreaType.Poor:
                         if (drug.AreaType == AreaType.Poor)
                         {
-                            drug.Demand = 1.0f + f;
+                            drug.Demand = 1.0f + AddRandomAmount();
                         }
                         if (drug.AreaType == AreaType.Normal)
                         {
-                            drug.Demand = 0.7f + f;
+                            drug.Demand = 0.8f + AddRandomAmount();
                         }
                         if (drug.AreaType == AreaType.Rich)
                         {
-                            drug.Demand = 0.1f + f;
+                            drug.Demand = 0.5f + AddRandomAmount();
                         }
                         drug.Delay = 10000;
                         break;
                     case AreaType.Normal:
                         if (drug.AreaType == AreaType.Poor)
                         {
-                            drug.Demand = 0.5f + f;
+                            drug.Demand = 0.7f + AddRandomAmount();
                         }
                         if (drug.AreaType == AreaType.Normal)
                         {
-                            drug.Demand = 1f + f;
+                            drug.Demand = 1f + AddRandomAmount();
                         }
                         if (drug.AreaType == AreaType.Rich)
                         {
-                            drug.Demand = 0.5f + f;
+                            drug.Demand = 0.7f + AddRandomAmount();
                         }
                         drug.Delay = 10000;
                         break;
                     case AreaType.Rich:
                         if (drug.AreaType == AreaType.Poor)
                         {
-                            drug.Demand = 0.1f + f;
+                            drug.Demand = 0.5f + AddRandomAmount();
                         }
                         if (drug.AreaType == AreaType.Normal)
                         {
-                            drug.Demand = 0.7f + f;
+                            drug.Demand = 0.8f + AddRandomAmount();
                         }
                         if (drug.AreaType == AreaType.Rich)
                         {
-                            drug.Demand = 1f + f;
+                            drug.Demand = 1f + AddRandomAmount();
                         }
                         drug.Delay = 10000;
                         break;
@@ -125,31 +112,75 @@ namespace LSlife
             if (getCustomer) { return true; }
             else { return false; }
         }
+
+        float AddRandomAmount()
+        {
+            return Function.Call<float>(Hash.GET_RANDOM_FLOAT_IN_RANGE, 0f, 0.25f);
+        }
+
         public void GetCustomer(List<Ped> peds)
         {
+            if (Drugs.Where(d => d.SelectCustomer).Count() > 0 && peds.Count > 0)
             {
-                foreach (Drug drug in Drugs)
+
+                foreach (Drug drug in Drugs.Where(d => d.SelectCustomer))
                 {
                     Random rInt = new Random();
                     int rIntMax = (int)(10f * drug.Demand);
                     if (drug.Demand > 1) { rIntMax = 10; }
                     if (rInt.Next(0, 11 - rIntMax) == 0)
                     {
-                        if (drug.SelectCustomer == true)
-                        {
-                            if (peds.Count == 0) { break; }
-                            else
-                            {
-
-                                int pIndex = rInt.Next(0, peds.Count);
-                                drug.Customer = peds[pIndex];
-                                peds.Remove(drug.Customer);
-                                drug.TimeOfLastCustomer = Game.GameTime;
-                            }
-                        }
+                        int pCount = peds.Count;
+                        int pIndex = 0;
+                        pIndex = rInt.Next(0, pCount);
+                        if (pCount == 1) pIndex = 0;
+                        //UI.Notify("pindex" + pCount);
+                        drug.Customer = peds[pIndex];
+                        peds.Remove(drug.Customer);
+                        drug.TimeOfLastCustomer = Game.GameTime;
+                        if (peds.Count == 0) break;
                     }
                 }
             }
+        }
+
+        public void KillDealer()
+        {
+            DealerKilled = true;
+            GangPresance -= 1;
+            DemandBuffTime = Game.GameTime;
+            DemandBuffLength = 60000 * (10 - GangPresance);
+        }
+
+        public bool CanSpawnDealer()
+        {
+            if (DealerKilled)
+            {
+                if (Game.GameTime > DemandBuff())
+                {
+                    DealerKilled = false;
+                    return true;
+                }
+                else return false;
+            }
+            else return true;
+        }
+
+        public int DemandBuff()
+        {
+            return DemandBuffTime + DemandBuffLength;
+        }
+
+        internal bool DemandMet()
+        {
+            foreach(Drug d in Drugs)
+            {
+                if(d.Supplied == false)
+                {
+                    return false;
+                }
+            }
+            return true;
         }
     }
 }

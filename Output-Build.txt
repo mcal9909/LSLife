@@ -1,1 +1,14 @@
-﻿
+﻿1>------ Build started: Project: LSlife, Configuration: Release x64 ------
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\Peds\DefultPed.cs(15,13,15,22): warning CS0169: The field 'DefaultPed.areaIndex' is never used
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\Peds\DefultPed.cs(14,21,14,28): warning CS0649: Field 'DefaultPed.working' is never assigned to, and will always have its default value false
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\PedDebugger.cs(17,13,17,18): warning CS0649: Field 'PedDebugger.dTime' is never assigned to, and will always have its default value 0
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\PlayerDealer.cs(33,16,33,23): warning CS0169: The field 'PlayerDealer.pedInfo' is never used
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\Prison.cs(15,20,15,30): warning CS0414: The field 'Prison.BailAmount' is assigned but its value is never used
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\DrugOrder.cs(14,14,14,19): warning CS0414: The field 'DrugOrder.payed' is assigned but its value is never used
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\Prison.cs(318,35,318,40): warning CS0414: The field 'Prison.Gate.DEBUG' is assigned but its value is never used
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\Inventory\ItemSlot.cs(5,13,5,23): warning CS0414: The field 'ItemSlot.SlotNumber' is assigned but its value is never used
+1>C:\Users\Mcal\source\repos\LSLife\LSlife\Prison.cs(320,26,320,32): warning CS0414: The field 'Prison.Gate.Locked' is assigned but its value is never used
+1>  LSlife -> C:\Users\Mcal\source\repos\LSLife\LSlife\bin\x64\Release\LSlife.dll
+1>          1 file(s) copied.
+1>          1 file(s) copied.
+========== Build: 1 succeeded, 0 failed, 0 up-to-date, 0 skipped ==========

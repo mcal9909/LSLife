@@ -1,19 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Xml;
-using System.Xml.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using System.Windows.Forms;
-using System.Drawing;
-using GTA;
-using GTA.Native;
-using GTA.Math;
-using NativeUI;
-using iFruitAddon2;
-using System.IO;
-using Control = GTA.Control;
+﻿using GTA;
 
 namespace LSlife
 {
@@ -24,7 +9,7 @@ namespace LSlife
         bool TimeOut = false;
         public bool StartTimer = false;
         private int lastTime;
-        
+
         public LsTimer(int time, bool timeOut, bool start)
         {
             TotalTime = time;
@@ -36,20 +21,20 @@ namespace LSlife
         #region Timer Funtions
         public void Tick()
         {
-            if(StartTimer && Game.GameTime > lastTime + 1000)
+            if (StartTimer && Game.GameTime > lastTime + 1000)
             {
                 lastTime = Game.GameTime;
                 if (!Finished())
                 {
-                    Time++;                    
+                    Time++;
                 }
                 else
                 {
                     if (TimeOut)
                     {
-                        Time = 0;                        
+                        Time = 0;
                     }
-                }                
+                }
             }
         }
         public bool Finished()
